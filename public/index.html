@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>起動 - 部活出欠管理システム</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background: linear-gradient(135deg, #4F46E5 0%, #2563EB 50%, #3B82F6 100%);
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* 動的な背景装飾 */
+        .bg-circle-1, .bg-circle-2 {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            z-index: 0;
+        }
+        .bg-circle-1 {
+            width: 500px;
+            height: 500px;
+            top: -100px;
+            left: -150px;
+            animation: float 8s ease-in-out infinite alternate;
+        }
+        .bg-circle-2 {
+            width: 300px;
+            height: 300px;
+            bottom: -50px;
+            right: -50px;
+            animation: float 6s ease-in-out infinite alternate-reverse;
+        }
+
+        .splash-content {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            padding: 20px;
+        }
+
+        .splash-title {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.05em;
+            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            animation: slideDown 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+            text-align: center;
+        }
+
+        .splash-subtitle {
+            font-size: clamp(1rem, 2vw, 1.25rem);
+            font-weight: 500;
+            opacity: 0.9;
+            margin-bottom: 3rem;
+            animation: fadeIn 1.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            text-align: center;
+        }
+
+        .splash-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 40px;
+            border-radius: 24px;
+            max-width: 380px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.4);
+            animation: slideUp 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .splash-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .splash-card p {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .splash-input {
+            width: 100%;
+            padding: 16px 20px;
+            font-size: 1.1rem;
+            color: #333;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+            outline: none;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 0.1em;
+        }
+
+        .splash-input:focus {
+            background: #ffffff;
+            border-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .splash-input::placeholder {
+            color: #9CA3AF;
+            letter-spacing: normal;
+        }
+
+        .splash-btn {
+            width: 100%;
+            padding: 16px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #4F46E5;
+            background: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .splash-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 300px;
+            height: 300px;
+            background: rgba(79, 70, 229, 0.1);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.5s;
+        }
+
+        .splash-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+        }
+        
+        .splash-btn:active {
+            transform: translateY(1px);
+        }
+
+        .splash-btn:hover::after {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .splash-error {
+            color: #EF4444;
+            background: #FEE2E2;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: none;
+            text-align: center;
+            border: 1px solid #F87171;
+            animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        }
+
+        /* アニメーション定義 */
+        @keyframes float {
+            0% { transform: translateY(0px) scale(1); }
+            100% { transform: translateY(-30px) scale(1.05); }
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+    </style>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="出欠管理">
+    <link rel="apple-touch-icon" href="/icon.svg">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW setup failed: ', err));
+            });
+        }
+    </script>
+</head>
+<body>
+    <div class="bg-circle-1"></div>
+    <div class="bg-circle-2"></div>
+
+    <div class="splash-content">
+        <h1 class="splash-title">部活出欠管理</h1>
+        <p class="splash-subtitle">リアルタイム出席・スケジュール連動システム</p>
+
+        <div class="splash-card">
+            <h3>システムログイン</h3>
+            <p style="margin-bottom: 20px;">起動用マスターパスワードを入力してください</p>
+            
+            <input type="password" id="startup-pw" class="splash-input" placeholder="パスワード" autofocus>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <button id="startup-btn" class="splash-btn">一般利用を開始する</button>
+                <button id="admin-btn" class="splash-btn" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.4);">管理者専用画面へ</button>
+            </div>
+            
+            <div id="startup-error" class="splash-error">パスワードが間違っています。</div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputEl = document.getElementById('startup-pw');
+            const btnEl = document.getElementById('startup-btn');
+            const adminBtnEl = document.getElementById('admin-btn');
+            const errEl = document.getElementById('startup-error');
+
+            let targetUrl = 'input.html';
+
+            const attemptLogin = () => {
+                const pw = inputEl.value;
+                if (pw === '51068010A') {
+                    // 管理者用としてログインする場合のみ localStorage等に権限をセット
+                    if (targetUrl === 'admin.html') {
+                        sessionStorage.setItem('isAdmin', 'true');
+                    } else {
+                        sessionStorage.removeItem('isAdmin');
+                    }
+
+                    // 成功したら画面をフェードアウトさせて targetUrl へ
+                    document.body.style.transition = "opacity 0.5s ease";
+                    document.body.style.opacity = "0";
+                    setTimeout(() => {
+                        window.location.href = targetUrl;
+                    }, 500);
+                } else {
+                    errEl.style.display = 'block';
+                    errEl.style.animation = 'none';
+                    errEl.offsetHeight; // リフロー
+                    errEl.style.animation = null;
+                    
+                    inputEl.value = ''; // 入力欄をクリア
+                    inputEl.focus();    // フォーカスを戻す
+                    
+                    setTimeout(() => {
+                        errEl.style.display = 'none';
+                    }, 2000);
+                }
+            };
+
+            btnEl.addEventListener('click', () => { targetUrl = 'input.html'; attemptLogin(); });
+            adminBtnEl.addEventListener('click', () => { targetUrl = 'admin.html'; attemptLogin(); });
+
+            inputEl.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    targetUrl = 'input.html'; // Enter時は一般利用を優先
+                    attemptLogin();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

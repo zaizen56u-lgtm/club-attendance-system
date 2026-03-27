@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>状況一覧 - 部活出欠管理システム</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="出欠管理">
+    <link rel="apple-touch-icon" href="/icon.svg">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW setup failed: ', err));
+            });
+        }
+    </script>
+</head>
+<body class="board-page" style="display: flex; justify-content: center; padding: 40px 20px;">
+    <div class="container fade-in" style="width: 100%; max-width: 1200px;">
+        <header class="board-header">
+            <div class="header-left">
+                <h1>現在の状況一覧</h1>
+            </div>
+            <div class="header-right">
+                <div id="clock" class="clock"></div>
+            </div>
+        </header>
+
+        <div class="card">
+            <div id="members-grid" class="members-grid">
+                <!-- JavaScriptで動的に追加されます -->
+            </div>
+        </div>
+
+        <div class="links">
+            <a href="schedule.html" class="nav-link" style="margin: 0 15px; color: #3B82F6; font-weight: bold;">スケジュール画面</a>
+            <a href="input.html" class="nav-link" style="margin: 0 15px;">&larr; 入力画面を開く</a>
+        <br><a href="index.html" class="nav-link" style="color: #6B7280; font-size: 0.85rem; margin-top: 15px; display: inline-block;">🏠 ログイン・起動画面へ戻る</a></div>
+    </div>
+    
+    <script src="board.js"></script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <script>
+        if (sessionStorage.getItem('isAdmin') !== 'true') {
+            window.location.href = 'index.html';
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>出欠履歴 - 部活出欠管理システム</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <style id="dynamic-calendar-style"></style>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="出欠管理">
+    <link rel="apple-touch-icon" href="/icon.svg">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW setup failed: ', err));
+            });
+        }
+    </script>
+</head>
+<body class="history-page">
+    <div class="container fade-in" style="max-width: 1200px; width: 95%;">
+        <header style="text-align: center;">
+            <h1>出欠履歴・カレンダー</h1>
+        </header>
+
+        <div id="alert-box" class="alert hidden"></div>
+
+        <div style="display: flex; gap: 20px; align-items: flex-start;">
+            <!-- サイドバー (フィルタと統計) -->
+            <div style="flex: 1; max-width: 300px;">
+                <div class="card" style="margin-bottom: 20px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="user-filter">部員を絞り込む</label>
+                        <select id="user-filter">
+                            <option value="none" disabled selected>部員を選ぶ</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card" id="stats-panel" style="display: none; margin-bottom: 20px;">
+                    <h2 style="font-size: 1.1rem; margin-bottom: 10px;">統計情報</h2>
+                    <ul style="list-style: none; font-size: 0.9rem; line-height: 1.8;">
+                        <li>出席日数: <span id="stats-attend" style="font-weight: bold;"></span></li>
+                        <li>欠席日数: <span id="stats-absent" style="font-weight: bold;"></span></li>
+                        <li>休日活動: <span id="stats-holiday-count" style="font-weight: bold;"></span></li>
+                        <hr style="border: 0; border-top: 1px solid #eaeaea; margin: 8px 0;">
+                        <li>遅刻回数: <span id="stats-late-count" style="font-weight: bold;"></span> <span id="stats-late-time"></span></li>
+                        <li>早退回数: <span id="stats-early-count" style="font-weight: bold;"></span> <span id="stats-early-time"></span></li>
+                        <li>時間外活動: <span id="stats-overtime-count" style="font-weight: bold;"></span> <span id="stats-overtime-time"></span></li>
+                    </ul>
+                </div>
+
+                <div class="card" id="daily-summary-panel" style="display: none; margin-bottom: 20px; background-color: #f8fafc; border-radius: 12px; padding: 15px;">
+                    <h2 style="font-size: 1.0rem; margin-bottom: 15px; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">📅 <span id="daily-date-label">選択された日</span> の部全体集計</h2>
+                    <ul style="list-style: none; font-size: 0.9rem; line-height: 2.0; padding: 0;">
+                        <li style="display: flex; justify-content: space-between;"><span>出席者数:</span> <strong id="daily-attend-count" style="color: #10b981;">0 人</strong></li>
+                        <li style="display: flex; justify-content: space-between;"><span>欠席者数:</span> <strong id="daily-absent-count" style="color: #ef4444;">0 人</strong></li>
+                        <li style="display: flex; justify-content: space-between;"><span>遅刻者数:</span> <strong id="daily-late-count" style="color: #f59e0b;">0 人</strong></li>
+                        <li style="display: flex; justify-content: space-between;"><span>早退者数:</span> <strong id="daily-early-count" style="color: #3b82f6;">0 人</strong></li>
+                        <li style="display: flex; justify-content: space-between;"><span>その他:</span> <strong id="daily-other-count">0 人</strong></li>
+                    </ul>
+                    <p style="font-size: 0.75rem; color: #64748b; margin-top: 15px; margin-bottom: 0;">※ カレンダーの日付をクリックすると、その日の部員全体の最終状況から自動集計されます。</p>
+                </div>
+            </div>
+
+            <!-- メインのカレンダー -->
+            <div class="card" style="flex: 3; padding: 20px;">
+                <div id="calendar" style="min-height: 70vh;"></div>
+            </div>
+        </div>
+
+        <div class="links">
+            <a href="schedule.html" class="nav-link" style="font-weight: bold; color: #3B82F6;">スケジュール画面を開く</a><br><br>
+            <a href="board.html" class="nav-link" style="color: var(--text-muted);">状況一覧画面を開く</a>
+        <br><a href="index.html" class="nav-link" style="color: #6B7280; font-size: 0.85rem; margin-top: 15px; display: inline-block;">🏠 ログイン・起動画面へ戻る</a></div>
+    </div>
+    
+    <script src="history.js"></script>
+</body>
+</html>

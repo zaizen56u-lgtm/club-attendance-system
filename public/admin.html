@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <script>
+        // 管理者権限のチェック。無ければルートへ弾く
+        if (sessionStorage.getItem('isAdmin') !== 'true') {
+            window.location.href = 'index.html';
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理画面 - 部活出欠管理システム</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="出欠管理">
+    <link rel="apple-touch-icon" href="/icon.svg">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW setup failed: ', err));
+            });
+        }
+    </script>
+</head>
+<body class="admin-page" style="display: flex; justify-content: center; padding: 40px 20px;">
+    <div class="container fade-in" style="width: 100%; max-width: 600px;">
+        <header>
+            <h1>管理者設定</h1>
+            <p>設定や変更を行うには管理者パスワードが必要です。</p>
+        </header>
+
+        <div class="card">
+            <div id="alert-box" class="alert hidden"></div>
+
+            <div style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
+                <h2 style="font-size: 1.25rem; margin-bottom: 10px;">権限の確認</h2>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="admin-password">管理用パスワード（全操作で必須）</label>
+                    <input type="password" id="admin-password" placeholder="パスワードを入力">
+                </div>
+            </div>
+
+            <section style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
+                <h2 style="font-size: 1.25rem; margin-bottom: 10px;">📱 部員へシステムを共有（QRコード表示）</h2>
+                <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">同じWi-Fi（ネットワーク）に繋がっているスマホから、以下のQRコードを読み取ってアクセスしてください。<br>※この画面を部員に見せて読み取ってもらうか、URLをLINE等で共有して使えます。</p>
+                <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
+                    <div id="qrcode-container" style="padding: 10px; background: white; border: 1px solid #ddd; border-radius: 8px;"></div>
+                    <div style="flex: 1; min-width: 250px;">
+                        <p style="font-size: 0.9rem; font-weight: bold; margin-bottom: 5px;">アクセスURL:</p>
+                        <input type="text" id="share-url-input" readonly style="width: 100%; padding: 10px; background: #f9fafb; border: 1px solid #ccc; border-radius: 5px; font-family: monospace;">
+                        <button type="button" id="copy-url-btn" style="margin-top: 10px; padding: 8px 15px; font-size: 0.85rem; background: #4F46E5; color: white; border: none; border-radius: 6px; cursor: pointer;">URLをコピー</button>
+                    </div>
+                </div>
+            </section>
+
+            <section style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
+                <h2 style="font-size: 1.25rem; margin-bottom: 10px;">部員の追加</h2>
+                <form id="add-member-form">
+                    <div class="form-group">
+                        <input type="text" id="new-member-name" placeholder="部員の名前" style="margin-bottom: 10px;" required>
+                        <input type="text" id="new-member-password" placeholder="初期パスワード（4桁数字など）" required>
+                        <button type="submit" class="submit-btn" style="margin-top: 15px;">追加する</button>
+                    </div>
+                </form>
+            </section>
+
+            <section style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
+                <h2 style="font-size: 1.25rem; margin-bottom: 10px;">部員の削除</h2>
+                <form id="remove-member-form">
+                    <div class="form-group">
+                        <select id="remove-member-select" required>
+                            <option value="" disabled selected>名前を選択してください</option>
+                        </select>
+                        <button type="submit" class="submit-btn" style="margin-top: 15px; background-color: #ef4444;">削除する</button>
+                    </div>
+                </form>
+            </section>
+
+            <section style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
+                <h2 style="font-size: 1.25rem; margin-bottom: 10px;">一括ステータス変更</h2>
+                <form id="bulk-update-form">
+                    <div id="bulk-members-container" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                        <!-- JavaScriptで動的に追加されます -->
+                    </div>
+                    <button type="submit" class="submit-btn">一括更新する</button>
+                </form>
+            </section>
+
+            <section style="margin-bottom: 10px;">
+                <h2 style="font-size: 1.25rem; margin-bottom: 10px;">休日活動の設定</h2>
+                <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">ここで設定した日付は、休日に活動した日としてカレンダーや統計で記録されます。</p>
+                <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <input type="date" id="holiday-date-input" style="flex: 1;">
+                    <button type="button" id="add-holiday-btn" class="btn primary" style="padding: 0 15px; border-radius: 8px; background: #4F46E5; color: white; border: none;">追加</button>
+                </div>
+                <ul id="holiday-dates-list" style="list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                </ul>
+                <form id="settings-form">
+                    <button type="submit" class="submit-btn">休日活動の設定を保存</button>
+                </form>
+            </section>
+        </div>
+
+        <div class="links">
+            <a href="schedule.html" class="nav-link" style="font-weight: bold; color: #3B82F6;">スケジュール画面を開く</a><br><br>
+            <a href="history.html" class="nav-link" style="font-weight: bold; color: var(--primary);">出欠履歴・ログを確認する</a><br><br>
+            <a href="input.html" class="nav-link">&larr; 入力画面に戻る</a><br><br>
+            <a href="board.html" class="nav-link" style="font-size: 0.8rem; color: var(--text-muted);">状況一覧画面を開く</a>
+        <br><a href="index.html" class="nav-link" style="color: #6B7280; font-size: 0.85rem; margin-top: 15px; display: inline-block;">🏠 ログイン・起動画面へ戻る</a></div>
+    </div>
+    
+    <script src="admin.js"></script>
+</body>
+</html>

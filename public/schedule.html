@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スケジュール管理 - 部活出欠管理システム</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <style id="dynamic-calendar-style"></style>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="出欠管理">
+    <link rel="apple-touch-icon" href="/icon.svg">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW setup failed: ', err));
+            });
+        }
+    </script>
+</head>
+<body class="schedule-page">
+    <div class="container fade-in" style="max-width: 1200px; width: 95%;">
+        <header style="text-align: center;">
+            <h1>スケジュール管理</h1>
+        </header>
+
+        <div class="card" style="padding: 20px;">
+            <div id="calendar" style="min-height: 70vh;"></div>
+        </div>
+
+        <div class="links">
+            <a href="board.html" class="nav-link">&larr; 状況一覧画面に戻る</a>
+            <br>
+            <a href="input.html" class="nav-link">入力フォームを開く</a>
+        <br><a href="index.html" class="nav-link" style="color: #6B7280; font-size: 0.85rem; margin-top: 15px; display: inline-block;">🏠 ログイン・起動画面へ戻る</a></div>
+    </div>
+    
+    <script src="schedule.js"></script>
+</body>
+</html>

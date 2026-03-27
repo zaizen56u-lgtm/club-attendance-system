@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>出欠入力 - 部活出欠管理システム</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="出欠管理">
+    <link rel="apple-touch-icon" href="/icon.svg">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW setup failed: ', err));
+            });
+        }
+    </script>
+</head>
+<body class="input-page">
+    <div class="container fade-in">
+        <header>
+            <h1>出欠登録</h1>
+            <p>あなたの名前とパスワードを入力し、現在の状況を選択してください。</p>
+        </header>
+
+        <div class="card">
+            <div id="alert-box" class="alert hidden"></div>
+            
+            <form id="attendance-form">
+                <div class="form-group">
+                    <label for="member-select">名前</label>
+                    <select id="member-select" required>
+                        <option value="" disabled selected>名前を選択してください</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="password-input">パスワード</label>
+                    <input type="password" id="password-input" placeholder="個人の番号 または 管理者パスワード" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="location-select">現在の場所</label>
+                    <select id="location-select" required>
+                        <option value="体育館" selected>体育館</option>
+                        <option value="部室（加工場）">部室（加工場）</option>
+                        <option value="校内">校内</option>
+                        <option value="-">（設定なし）</option>
+                    </select>
+                </div>
+
+                <div class="status-grid form-group">
+                    <label>状況を選択</label>
+                    <div class="status-buttons">
+                        <button type="button" class="status-btn" data-status="出席">出席</button>
+                        <button type="button" class="status-btn" data-status="退席">退席</button>
+                        <button type="button" class="status-btn" data-status="休憩">休憩</button>
+                        <button type="button" class="status-btn" data-status="外出">外出</button>
+                    </div>
+                    <input type="hidden" id="selected-status" required>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submit-btn" disabled>更新する</button>
+            </form>
+        </div>
+        
+        <div class="links">
+            <a href="schedule.html" class="nav-link" style="color: #3B82F6; font-weight: bold; margin-bottom: 20px; display: inline-block;">スケジュール画面を開く</a>
+            <br>
+            <a href="board.html" class="nav-link">状況一覧画面を開く &rarr;</a>
+            <br><br><a href="index.html" class="nav-link" style="color: #6B7280; font-size: 0.85rem; margin-top: 15px; display: inline-block;">🏠 ログイン・起動画面へ戻る</a></div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
