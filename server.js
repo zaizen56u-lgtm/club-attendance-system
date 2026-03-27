@@ -10,7 +10,7 @@ const io = new Server(server);
 
 // 管理用パスワード
 const ADMIN_PASSWORD = "51068010A";
-const MASTER_PASSWORD = "51068010A"; // 全員分の出欠入力を可能にするマスターパスワード
+const MASTER_PASSWORD = "denken1975"; // 全員分の出欠入力を可能にするマスターパスワード
 
 // 部員の初期データ (名前, パスワード, 現在のステータス, 活動場所, 最終更新時刻)
 let members = [
@@ -57,7 +57,8 @@ io.on('connection', (socket) => {
       return;
     }
     
-    if (member.password !== password && password !== MASTER_PASSWORD) {
+    // 個人のパスワード、またはマスターパスワード、または管理用パスワードのいずれかが一致すればOK
+    if (member.password !== password && password !== MASTER_PASSWORD && password !== ADMIN_PASSWORD) {
       if(callback) callback({ success: false, message: "パスワードが間違っています" });
       return;
     }

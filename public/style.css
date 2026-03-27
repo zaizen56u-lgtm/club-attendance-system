@@ -23,12 +23,17 @@
 }
 
 body {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
     background-color: var(--bg-color);
     color: var(--text-main);
+    font-size: 16px; /* ベースフォントサイズを16pxで統一 */
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
 }
+
+h1 { font-size: 1.5rem !important; }
+h2 { font-size: 1.2rem !important; }
+p, a, button, input, select { font-size: 1rem; font-family: inherit; }
 
 .fade-in {
     animation: fadeIn 0.6s ease-out forwards;
@@ -371,4 +376,17 @@ select:focus, input[type="password"]:focus {
 
 .highlight {
     animation: highlightUpdate 1.5s ease-out;
+}
+
+/* レスポンシブ対応：状況一覧のカード（スマホなどで適正な列数にする） */
+@media screen and (max-width: 900px) {
+    .members-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+@media screen and (max-width: 600px) {
+    .members-grid {
+        grid-template-columns: 1fr !important;
+    }
 }

@@ -38,7 +38,7 @@
             <div id="alert-box" class="alert hidden"></div>
 
             <div style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
-                <h2 style="font-size: 1.25rem; margin-bottom: 10px;">権限の確認</h2>
+                <h2 style="margin-bottom: 10px;">権限の確認</h2>
                 <div class="form-group" style="margin-bottom: 0;">
                     <label for="admin-password">管理用パスワード（全操作で必須）</label>
                     <input type="password" id="admin-password" placeholder="パスワードを入力">
@@ -46,8 +46,8 @@
             </div>
 
             <section style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
-                <h2 style="font-size: 1.25rem; margin-bottom: 10px;">📱 部員へシステムを共有（QRコード表示）</h2>
-                <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">同じWi-Fi（ネットワーク）に繋がっているスマホから、以下のQRコードを読み取ってアクセスしてください。<br>※この画面を部員に見せて読み取ってもらうか、URLをLINE等で共有して使えます。</p>
+                <h2 style="margin-bottom: 10px;">📱 部員へシステムを共有（QRコード表示）</h2>
+                <p style="color: #666; margin-bottom: 15px;">同じWi-Fi（ネットワーク）に繋がっているスマホから、以下のQRコードを読み取ってアクセスしてください。<br>※この画面を部員に見せて読み取ってもらうか、URLをLINE等で共有して使えます。</p>
                 <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
                     <div id="qrcode-container" style="padding: 10px; background: white; border: 1px solid #ddd; border-radius: 8px;"></div>
                     <div style="flex: 1; min-width: 250px;">
@@ -59,7 +59,7 @@
             </section>
 
             <section style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
-                <h2 style="font-size: 1.25rem; margin-bottom: 10px;">部員の追加</h2>
+                <h2 style="margin-bottom: 10px;">部員の追加</h2>
                 <form id="add-member-form">
                     <div class="form-group">
                         <input type="text" id="new-member-name" placeholder="部員の名前" style="margin-bottom: 10px;" required>
@@ -70,7 +70,7 @@
             </section>
 
             <section style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
-                <h2 style="font-size: 1.25rem; margin-bottom: 10px;">部員の削除</h2>
+                <h2 style="margin-bottom: 10px;">部員の削除</h2>
                 <form id="remove-member-form">
                     <div class="form-group">
                         <select id="remove-member-select" required>
@@ -82,7 +82,7 @@
             </section>
 
             <section style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
-                <h2 style="font-size: 1.25rem; margin-bottom: 10px;">一括ステータス変更</h2>
+                <h2 style="margin-bottom: 10px;">一括ステータス変更</h2>
                 <form id="bulk-update-form">
                     <div id="bulk-members-container" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
                         <!-- JavaScriptで動的に追加されます -->
@@ -92,8 +92,8 @@
             </section>
 
             <section style="margin-bottom: 10px;">
-                <h2 style="font-size: 1.25rem; margin-bottom: 10px;">休日活動の設定</h2>
-                <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">ここで設定した日付は、休日に活動した日としてカレンダーや統計で記録されます。</p>
+                <h2 style="margin-bottom: 10px;">休日活動の設定</h2>
+                <p style="color: #666; margin-bottom: 15px;">ここで設定した日付は、休日に活動した日としてカレンダーや統計で記録されます。</p>
                 <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 15px;">
                     <input type="date" id="holiday-date-input" style="flex: 1;">
                     <button type="button" id="add-holiday-btn" class="btn primary" style="padding: 0 15px; border-radius: 8px; background: #4F46E5; color: white; border: none;">追加</button>
@@ -110,8 +110,8 @@
             <a href="schedule.html" class="nav-link" style="font-weight: bold; color: #3B82F6;">スケジュール画面を開く</a><br><br>
             <a href="history.html" class="nav-link" style="font-weight: bold; color: var(--primary);">出欠履歴・ログを確認する</a><br><br>
             <a href="input.html" class="nav-link">&larr; 入力画面に戻る</a><br><br>
-            <a href="board.html" class="nav-link" style="font-size: 0.8rem; color: var(--text-muted);">状況一覧画面を開く</a>
-        <br><a href="index.html" class="nav-link" style="color: #6B7280; font-size: 0.85rem; margin-top: 15px; display: inline-block;">🏠 ログイン・起動画面へ戻る</a></div>
+            <a href="board.html" class="nav-link" style="color: var(--text-muted);">状況一覧画面を開く</a>
+        <br><a href="index.html" class="nav-link" style="color: #6B7280; margin-top: 15px; display: inline-block;">🏠 ログイン・起動画面へ戻る</a></div>
     </div>
     
     <script src="admin.js"></script>

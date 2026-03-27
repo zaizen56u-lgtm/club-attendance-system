@@ -25,14 +25,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     // 一括変更用の行生成
                     const row = document.createElement('div');
                     row.className = 'bulk-member-row';
+                    row.dataset.id = m.id;
                     row.dataset.name = m.name;
                     row.dataset.origStatus = m.status;
                     row.dataset.origLocation = m.location;
                     row.style.cssText = "display: flex; gap: 10px; align-items: center; background: #F9FAFB; padding: 4px 10px; border-radius: 8px;";
                     
                     row.innerHTML = `
-                        <div style="flex: 1; font-weight: bold; font-size: 0.9rem;">${m.name}</div>
-                        <select class="bulk-status" style="width: 90px; padding: 6px; border-radius: 4px; border: 1px solid #D1D5DB; font-size: 0.85rem;">
+                        <div style="flex: 1; font-weight: bold;">${m.name}</div>
+                        <select class="bulk-status" style="width: 90px; padding: 6px; border-radius: 4px; border: 1px solid #D1D5DB;">
                             <option value="-" ${m.status==='-'?'selected':''}>-</option>
                             <option value="出席" ${m.status==='出席'?'selected':''}>出席</option>
                             <option value="退席" ${m.status==='退席'?'selected':''}>退席</option>
@@ -41,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <option value="早退" ${m.status==='早退'?'selected':''}>早退</option>
                             <option value="欠席" ${m.status==='欠席'?'selected':''}>欠席</option>
                         </select>
-                        <select class="bulk-location" style="width: 130px; padding: 6px; border-radius: 4px; border: 1px solid #D1D5DB; font-size: 0.85rem;">
+                        <select class="bulk-location" style="width: 130px; padding: 6px; border-radius: 4px; border: 1px solid #D1D5DB;">
                             <option value="-" ${m.location==='-'?'selected':''}>-</option>
                             <option value="体育館" ${m.location==='体育館'?'selected':''}>体育館</option>
                             <option value="部室（加工場）" ${m.location==='部室（加工場）'?'selected':''}>部室（加工場）</option>
@@ -64,10 +65,10 @@ document.addEventListener('DOMContentLoaded', () => {
         currentHolidayDates.sort(); // 日付順にソート
         currentHolidayDates.forEach(dateStr => {
             const li = document.createElement('li');
-            li.style.cssText = "background: #FEE2E2; color: #B91C1C; padding: 2px 10px; border-radius: 20px; font-size: 0.85rem; display: flex; align-items: center; gap: 8px;";
+            li.style.cssText = "background: #FEE2E2; color: #B91C1C; padding: 2px 10px; border-radius: 20px; display: flex; align-items: center; gap: 8px;";
             li.innerHTML = `
                 <span>${dateStr}</span>
-                <button type="button" data-date="${dateStr}" class="remove-holiday-btn" style="border: none; background: transparent; color: #991B1B; cursor: pointer; font-size: 1rem; line-height: 1;">&times;</button>
+                <button type="button" data-date="${dateStr}" class="remove-holiday-btn" style="border: none; background: transparent; color: #991B1B; cursor: pointer; line-height: 1;">&times;</button>
             `;
             holidayDatesList.appendChild(li);
         });
@@ -198,6 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let updatedCount = 0;
 
         rows.forEach(row => {
+            const id = row.dataset.id;
             const name = row.dataset.name;
             const origStatus = row.dataset.origStatus;
             const origLocation = row.dataset.origLocation;
@@ -208,8 +210,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (status !== origStatus || location !== origLocation) {
                 updatedCount++;
                 updatePromises.push(new Promise((resolve) => {
-                    socket.emit('updateStatus', { name, password: adminPassword, status, location }, (res) => {
-                        resolve(res.success);
+                    socket.emit('updateStatus', { id, password: adminPassword, newStatus: status, newLocation: location }, (res) => {
+                        resolve(res); // 以前の resolve(res.success) から res 全体を返すように変更
                     });
                 }));
             }
@@ -221,8 +223,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         Promise.all(updatePromises).then(results => {
-            const successCount = results.filter(r => r).length;
-            showAlert('成功', `${successCount}名のステータスを一括更新しました！`, 'success');
+            const successCount = results.filter(r => r.success).length;
+            if (successCount === 0) {
+                // 失敗した理由を集めて表示する
+                const errorMsg = results.find(r => !r.success)?.message || "不明なエラー";
+                showAlert('エラー', `更新0名。理由: ${errorMsg}`, 'error');
+            } else {
+                showAlert('成功', `${successCount}名のステータスを一括更新しました！`, 'success');
+            }
             loadMembers(); // 全てのフォーム項目を最新の状態にリセット
         });
     });

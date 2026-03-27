@@ -57,7 +57,7 @@
         }
 
         .splash-title {
-            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-size: 1.8rem;
             font-weight: 800;
             margin-bottom: 0.5rem;
             letter-spacing: -0.05em;
@@ -67,7 +67,7 @@
         }
 
         .splash-subtitle {
-            font-size: clamp(1rem, 2vw, 1.25rem);
+            font-size: 1.1rem;
             font-weight: 500;
             opacity: 0.9;
             margin-bottom: 3rem;
@@ -255,14 +255,19 @@
 
             const attemptLogin = () => {
                 const pw = inputEl.value;
-                if (pw === '51068010A') {
-                    // 管理者用としてログインする場合のみ localStorage等に権限をセット
-                    if (targetUrl === 'admin.html') {
-                        sessionStorage.setItem('isAdmin', 'true');
-                    } else {
-                        sessionStorage.removeItem('isAdmin');
-                    }
+                let isSuccess = false;
 
+                if (targetUrl === 'admin.html' && pw === '51068010A') {
+                    // 管理者として成功
+                    isSuccess = true;
+                    sessionStorage.setItem('isAdmin', 'true');
+                } else if (targetUrl === 'input.html' && pw === 'denken1975') {
+                    // 一般学生として成功
+                    isSuccess = true;
+                    sessionStorage.removeItem('isAdmin');
+                }
+
+                if (isSuccess) {
                     // 成功したら画面をフェードアウトさせて targetUrl へ
                     document.body.style.transition = "opacity 0.5s ease";
                     document.body.style.opacity = "0";
