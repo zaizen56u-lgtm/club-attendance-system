@@ -10,21 +10,43 @@ document.addEventListener('DOMContentLoaded', () => {
             document.head.appendChild(styleEl);
         }
         let css = '';
+        if (settings.weekdayDates) {
+            settings.weekdayDates.forEach(dateStr => {
+                css += `
+                .fc-day[data-date="${dateStr}"] { background-color: rgba(37, 99, 235, 0.1) !important; }
+                .fc-day[data-date="${dateStr}"] .fc-col-header-cell-cushion, 
+                .fc-day[data-date="${dateStr}"] .fc-daygrid-day-number { color: #2563EB !important; }`;
+            });
+        }
         if (settings.holidayDates) {
             settings.holidayDates.forEach(dateStr => {
                 css += `
-                .fc-day[data-date="${dateStr}"] { background-color: rgba(239, 68, 68, 0.05) !important; }
+                .fc-day[data-date="${dateStr}"] { background-color: rgba(245, 158, 11, 0.1) !important; }
                 .fc-day[data-date="${dateStr}"] .fc-col-header-cell-cushion, 
-                .fc-day[data-date="${dateStr}"] .fc-daygrid-day-number { color: #EF4444 !important; }`;
+                .fc-day[data-date="${dateStr}"] .fc-daygrid-day-number { color: #d97706 !important; }`;
+            });
+        }
+        if (settings.offDates) {
+            settings.offDates.forEach(dateStr => {
+                css += `
+                .fc-day[data-date="${dateStr}"] { background-color: rgba(16, 185, 129, 0.1) !important; }
+                .fc-day[data-date="${dateStr}"] .fc-col-header-cell-cushion, 
+                .fc-day[data-date="${dateStr}"] .fc-daygrid-day-number { color: #059669 !important; }`;
             });
         }
         styleEl.innerHTML = css;
     }
 
+    let currentSettings = {};
+
     socket.emit('getSettings', (res) => {
-        if(res.success) applyDynamicColors(res.settings);
+        if(res.success) {
+            currentSettings = res.settings;
+            applyDynamicColors(res.settings);
+        }
     });
     socket.on('settingsUpdated', (newSettings) => {
+        currentSettings = newSettings;
         applyDynamicColors(newSettings);
     });
 
@@ -33,6 +55,41 @@ document.addEventListener('DOMContentLoaded', () => {
         locale: 'ja',
         height: 'auto',
         selectable: true, // クリックやドラッグで予定作成可能に
+        dateClick: function(info) {
+            const dateStr = info.dateStr;
+            const dateObj = new Date(dateStr);
+            const dayOfWeek = dateObj.getDay();
+            const isSaturday = dayOfWeek === 6;
+            const isSunday = dayOfWeek === 0;
+            const isHoliday = currentSettings.holidayDates && currentSettings.holidayDates.includes(dateStr);
+            const isOffDate = currentSettings.offDates && currentSettings.offDates.includes(dateStr);
+            const isWeekdayDate = currentSettings.weekdayDates && currentSettings.weekdayDates.includes(dateStr);
+
+            let ruleText = "通常活動日 (16:30〜18:30)";
+            let ruleColor = "#4338ca";
+            if (isOffDate) {
+                ruleText = "休み (部活なし)";
+                ruleColor = "#10b981"; 
+            } else if (isHoliday) {
+                ruleText = "土曜扱い (9:30〜18:30)";
+                ruleColor = "#d97706"; 
+            } else if (isWeekdayDate) {
+                ruleText = "平日扱い (16:30〜18:30)";
+                ruleColor = "#2563eb"; 
+            } else if (isSunday) {
+                ruleText = "日曜日 (通常休み)";
+                ruleColor = "#64748b"; 
+            } else if (isSaturday) {
+                ruleText = "土曜日 (9:30〜18:30)";
+                ruleColor = "#0284c7"; 
+            }
+
+            document.getElementById('daily-date-label').textContent = dateStr;
+            const lbl = document.getElementById('daily-rule-label');
+            lbl.textContent = ruleText;
+            lbl.style.color = ruleColor;
+            document.getElementById('daily-summary-panel').style.display = 'block';
+        },
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',

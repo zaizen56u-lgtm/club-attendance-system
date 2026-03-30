@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="emergency.js?v=1.0"></script>
     <style id="dynamic-calendar-style"></style>
     <link rel="manifest" href="/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -28,7 +29,13 @@
             <h1>スケジュール管理</h1>
         </header>
 
-        <div class="card" style="padding: 20px;">
+        <div class="card" style="padding: 20px; margin-bottom: 20px;">
+            <div class="card" id="daily-summary-panel" style="display: none; margin-bottom: 20px; background-color: #f8fafc; border-radius: 12px; padding: 15px;">
+                <h2 style="font-size: 1.0rem; margin-bottom: 15px; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;"><span id="daily-date-label">選択された日</span> の活動設定</h2>
+                <ul style="list-style: none; font-size: 0.95rem; line-height: 2.0; padding: 0;">
+                    <li style="display: flex; justify-content: space-between;"><span>活動ルール:</span> <strong id="daily-rule-label" style="color: #4338ca;">-</strong></li>
+                </ul>
+            </div>
             <div id="calendar" style="min-height: 70vh;"></div>
         </div>
 
@@ -39,6 +46,6 @@
         <br><a href="index.html" class="nav-link" style="color: #6B7280; margin-top: 15px; display: inline-block;">🏠 ログイン・起動画面へ戻る</a></div>
     </div>
     
-    <script src="schedule.js"></script>
+    <script src="schedule.js?v=1.2"></script>
 </body>
 </html>

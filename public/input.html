@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
+    <script src="emergency.js?v=1.0"></script>
     <link rel="manifest" href="/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -58,10 +59,17 @@
                     <div class="status-buttons">
                         <button type="button" class="status-btn" data-status="出席">出席</button>
                         <button type="button" class="status-btn" data-status="退席">退席</button>
+                        <button type="button" class="status-btn" data-status="遅刻">遅刻</button>
+                        <button type="button" class="status-btn" data-status="欠席">欠席</button>
                         <button type="button" class="status-btn" data-status="休憩">休憩</button>
-                        <button type="button" class="status-btn" data-status="外出">外出</button>
+                        <button type="button" class="status-btn" data-status="一時外出">一時外出</button>
                     </div>
                     <input type="hidden" id="selected-status" required>
+                </div>
+
+                <div class="form-group hidden" id="reason-group" style="display: none;">
+                    <label for="reason-input" id="reason-label">理由・詳細 <span style="color:red; font-size:0.85em;">(必須)</span></label>
+                    <textarea id="reason-input" rows="2" placeholder="" style="width: 100%; border-radius: 6px; border: 1px solid #D1D5DB; padding: 10px; font-size: 1rem; margin-top: 5px; resize: vertical;"></textarea>
                 </div>
 
                 <button type="submit" class="submit-btn" id="submit-btn" disabled>更新する</button>

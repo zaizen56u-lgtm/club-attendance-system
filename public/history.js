@@ -1,11 +1,17 @@
 document.addEventListener('DOMContentLoaded', () => {
     const socket = io();
+
+    // サーバーからの強制リロード命令
+    socket.on('forceReload', () => {
+        window.location.reload();
+    });
+
     const alertBox = document.getElementById('alert-box');
     const userFilter = document.getElementById('user-filter');
 
     let allLogs = [];
     let calendar;
-    let systemSettings = { holidayDates: [] };
+    let systemSettings = { weekdayDates: [], holidayDates: [], offDates: [] };
 
     function applyDynamicColors(settings) {
         let styleEl = document.getElementById('dynamic-calendar-style');
@@ -15,12 +21,28 @@ document.addEventListener('DOMContentLoaded', () => {
             document.head.appendChild(styleEl);
         }
         let css = '';
+        if (settings.weekdayDates) {
+            settings.weekdayDates.forEach(dateStr => {
+                css += `
+                .fc-day[data-date="${dateStr}"] { background-color: rgba(37, 99, 235, 0.1) !important; }
+                .fc-day[data-date="${dateStr}"] .fc-col-header-cell-cushion, 
+                .fc-day[data-date="${dateStr}"] .fc-daygrid-day-number { color: #2563EB !important; }`;
+            });
+        }
         if (settings.holidayDates) {
             settings.holidayDates.forEach(dateStr => {
                 css += `
-                .fc-day[data-date="${dateStr}"] { background-color: rgba(239, 68, 68, 0.05) !important; }
+                .fc-day[data-date="${dateStr}"] { background-color: rgba(245, 158, 11, 0.1) !important; }
                 .fc-day[data-date="${dateStr}"] .fc-col-header-cell-cushion, 
-                .fc-day[data-date="${dateStr}"] .fc-daygrid-day-number { color: #EF4444 !important; }`;
+                .fc-day[data-date="${dateStr}"] .fc-daygrid-day-number { color: #d97706 !important; }`;
+            });
+        }
+        if (settings.offDates) {
+            settings.offDates.forEach(dateStr => {
+                css += `
+                .fc-day[data-date="${dateStr}"] { background-color: rgba(16, 185, 129, 0.1) !important; }
+                .fc-day[data-date="${dateStr}"] .fc-col-header-cell-cushion, 
+                .fc-day[data-date="${dateStr}"] .fc-daygrid-day-number { color: #059669 !important; }`;
             });
         }
         styleEl.innerHTML = css;
@@ -119,14 +141,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     firstAttendRaw: null,
                     lastLeaveTime: null,
                     lastLeaveRaw: null,
-                    attended: false
+                    attended: false,
+                    excusedLate: false,
+                    excusedAbsent: false
                 };
             }
 
             const timeStr = `${String(dateObj.getHours()).padStart(2,'0')}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
             const rawTime = dateObj.getTime();
 
-            if (log.status === '出席') {
+            if (log.status === '出席' || log.status === '遅刻') {
                 dailyRecords[key].attended = true;
                 if (!dailyRecords[key].firstAttendRaw || rawTime < dailyRecords[key].firstAttendRaw) {
                     dailyRecords[key].firstAttendTime = timeStr;
@@ -137,6 +161,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     dailyRecords[key].lastLeaveTime = timeStr;
                     dailyRecords[key].lastLeaveRaw = rawTime;
                 }
+            }
+            if (log.status === '遅刻') {
+                dailyRecords[key].excusedLate = true;
+            }
+            if (log.status === '欠席') {
+                dailyRecords[key].excusedAbsent = true;
             }
         });
 
@@ -196,10 +226,12 @@ document.addEventListener('DOMContentLoaded', () => {
         today.setHours(0,0,0,0);
 
         let attendDays = 0;
-        let absentDays = 0;
+        let absentDaysExcused = 0;
+        let absentDaysUnexcused = 0;
         let holidayDays = 0;
         let holidayTimeMs = 0;
-        let lateCount = 0;
+        let lateCountExcused = 0;
+        let lateCountUnexcused = 0;
         let lateTimeMs = 0;
         let earlyCount = 0;
         let earlyTimeMs = 0;
@@ -221,26 +253,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 const firstAttendObj = new Date(record.firstAttendRaw);
                 const lastLeaveObj = record.lastLeaveRaw ? new Date(record.lastLeaveRaw) : null;
 
-                if (isHoliday) { // 休日設定されている曜日
+                const isOffDate = systemSettings.offDates && systemSettings.offDates.includes(yyyyMmDd);
+                const isExplicitWeekday = systemSettings.weekdayDates && systemSettings.weekdayDates.includes(yyyyMmDd);
+
+                if (isHoliday || (dayOfWeek === 0 && !isExplicitWeekday)) { // 休日設定または日曜日（ただし強制平日がない場合）
                     holidayDays++;
                     if (lastLeaveObj) {
                         holidayTimeMs += (lastLeaveObj.getTime() - firstAttendObj.getTime());
                     }
-                } else {
+                } else if (!isOffDate) { // オフ日じゃなければ計算
+
                     const reqStart = new Date(currentDate);
                     const reqEnd = new Date(currentDate);
                     
-                    if (dayOfWeek >= 1 && dayOfWeek <= 5) { // 月〜金
+                    if (isExplicitWeekday || (dayOfWeek >= 1 && dayOfWeek <= 5)) { // 強制平日 または 月〜金
                         reqStart.setHours(16, 30, 0, 0);
                         reqEnd.setHours(18, 30, 0, 0);
-                    } else if (dayOfWeek === 6 || dayOfWeek === 0) { // 設定外の土日は9:30-18:30を標準の活動時間とみなす
+                    } else if (dayOfWeek === 6) { // 土曜日は9:30-18:30を標準の活動時間とみなす
                         reqStart.setHours(9, 30, 0, 0);
                         reqEnd.setHours(18, 30, 0, 0);
                     }
 
                     // 遅刻の判定
                     if (firstAttendObj > reqStart) {
-                        lateCount++;
+                        if (record.excusedLate) {
+                            lateCountExcused++;
+                        } else {
+                            lateCountUnexcused++;
+                        }
                         lateTimeMs += (firstAttendObj.getTime() - reqStart.getTime());
                     }
 
@@ -265,11 +305,18 @@ document.addEventListener('DOMContentLoaded', () => {
                                 overtimeTimeMs += outsideTime;
                             }
                         }
-                    }
+                }
                 }
             } else {
-                if (!isHoliday) { // 休日でない場合は必須日なので欠席
-                    absentDays++;
+                const isOffDate = systemSettings.offDates && systemSettings.offDates.includes(yyyyMmDd);
+                const isExplicitWeekday = systemSettings.weekdayDates && systemSettings.weekdayDates.includes(yyyyMmDd);
+                
+                if (!isHoliday && (dayOfWeek !== 0 || isExplicitWeekday) && !isOffDate) { // 休日と日曜日・指定休養日以外は活動日
+                    if (record && record.excusedAbsent) {
+                        absentDaysExcused++;
+                    } else {
+                        absentDaysUnexcused++;
+                    }
                 }
             }
             currentDate.setDate(currentDate.getDate() + 1);
@@ -283,9 +330,14 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         document.getElementById('stats-attend').innerText = `${attendDays} 日`;
-        document.getElementById('stats-absent').innerText = `${absentDays} 日`;
+        document.getElementById('stats-absent').innerText = `${absentDaysExcused + absentDaysUnexcused} 日`;
+        document.getElementById('stats-absent-excused').innerText = `${absentDaysExcused} 日`;
+        document.getElementById('stats-absent-unexcused').innerText = `${absentDaysUnexcused} 日`;
+
         document.getElementById('stats-holiday-count').innerText = `${holidayDays} 日`;
-        document.getElementById('stats-late-count').innerText = `${lateCount} 回`;
+        document.getElementById('stats-late-count').innerText = `${lateCountExcused + lateCountUnexcused} 回`;
+        document.getElementById('stats-late-excused').innerText = `${lateCountExcused} 回`;
+        document.getElementById('stats-late-unexcused').innerText = `${lateCountUnexcused} 回`;
         document.getElementById('stats-late-time').innerText = `(${msToHm(lateTimeMs)})`;
         document.getElementById('stats-early-count').innerText = `${earlyCount} 回`;
         document.getElementById('stats-early-time').innerText = `(${msToHm(earlyTimeMs)})`;
@@ -312,7 +364,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 finalStatus: '未設定', 
                 attended: false, 
                 firstAttendTime: null, 
-                lastLeaveTime: null 
+                lastLeaveTime: null,
+                excusedLate: false,
+                excusedAbsent: false
             };
         });
 
@@ -323,43 +377,105 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const logTime = new Date(log.timestamp).getTime();
 
-            if (log.status === '出席') {
+            if (log.status === '出席' || log.status === '遅刻') {
                 ms.attended = true;
                 if (!ms.firstAttendTime || logTime < ms.firstAttendTime) ms.firstAttendTime = logTime;
             } else if (log.status === '退席' || log.status === '早退') {
                 if (!ms.lastLeaveTime || logTime > ms.lastLeaveTime) ms.lastLeaveTime = logTime;
             }
+            if (log.status === '遅刻') ms.excusedLate = true;
+            if (log.status === '欠席') ms.excusedAbsent = true;
         });
 
         let attendCount = 0;
-        let absentCount = 0;
-        let lateCount = 0;
+        let absentExcusedCount = 0;
+        let absentUnexcusedCount = 0;
+        let lateExcusedCount = 0;
+        let lateUnexcusedCount = 0;
         let earlyCount = 0;
         let otherCount = 0;
 
-        const isWeekend = new Date(dateStr).getDay() === 0 || new Date(dateStr).getDay() === 6;
-        const actualStart = new Date(`${dateStr}T${isWeekend ? '09:30:00' : '16:30:00'}`).getTime();
-        const actualEnd = new Date(`${dateStr}T18:30:00`).getTime();
+        const dateObj = new Date(dateStr);
+        const dayOfWeek = dateObj.getDay();
+        const isSaturday = dayOfWeek === 6;
+        const isSunday = dayOfWeek === 0;
         const isHoliday = systemSettings.holidayDates && systemSettings.holidayDates.includes(dateStr);
+        const isOffDate = systemSettings.offDates && systemSettings.offDates.includes(dateStr);
+        const isWeekdayDate = systemSettings.weekdayDates && systemSettings.weekdayDates.includes(dateStr);
+        const isSpecialDay = (isSaturday || isHoliday) && !isWeekdayDate;
+        
+        const actualStart = new Date(`${dateStr}T${isSpecialDay ? '09:30:00' : '16:30:00'}`).getTime();
+        const actualEnd = new Date(`${dateStr}T18:30:00`).getTime();
 
         Object.values(memberStats).forEach(ms => {
             if (ms.attended) {
                 attendCount++;
-                if (ms.firstAttendTime > actualStart) lateCount++;
-                if (ms.lastLeaveTime && ms.lastLeaveTime < actualEnd) earlyCount++;
+                if (!isSunday || isHoliday || isWeekdayDate) {
+                    if (!isOffDate) {
+                        if (ms.firstAttendTime > actualStart) {
+                            if (ms.excusedLate) lateExcusedCount++;
+                            else lateUnexcusedCount++;
+                        }
+                        if (ms.lastLeaveTime && ms.lastLeaveTime < actualEnd) earlyCount++;
+                    }
+                }
             } else {
-                if (!isHoliday && ms.finalStatus === '未設定') absentCount++;
-                else if (ms.finalStatus === '欠席') absentCount++;
-                else otherCount++;
+                const isOffDay = isSunday || isHoliday || isOffDate;
+                if (!isOffDay && !isWeekdayDate) {
+                    if (ms.excusedAbsent || ms.finalStatus === '欠席') {
+                        absentExcusedCount++;
+                    } else if (ms.finalStatus === '未設定') {
+                        absentUnexcusedCount++;
+                    }
+                } else if (ms.finalStatus === '欠席') {
+                    absentExcusedCount++;
+                } else {
+                    otherCount++;
+                }
             }
         });
 
         document.getElementById('daily-date-label').textContent = dateStr;
+
+        let ruleText = "通常活動日 (16:30〜18:30)";
+        let ruleColor = "#4338ca"; // Indigo
+        if (isOffDate) {
+            ruleText = "休み (部活なし)";
+            ruleColor = "#10b981"; // Emerald
+        } else if (isHoliday) {
+            ruleText = "土曜扱い (9:30〜18:30)";
+            ruleColor = "#d97706"; // amber
+        } else if (isWeekdayDate) {
+            ruleText = "平日扱い (16:30〜18:30)";
+            ruleColor = "#2563eb"; // blue
+        } else if (isSunday) {
+            ruleText = "日曜日 (通常休み)";
+            ruleColor = "#64748b"; // slate
+        } else if (isSaturday) {
+            ruleText = "土曜日 (9:30〜18:30)";
+            ruleColor = "#0284c7"; // light blue
+        }
+
+        const ruleLabel = document.getElementById('daily-rule-label');
+        if (ruleLabel) {
+            ruleLabel.textContent = ruleText;
+            ruleLabel.style.color = ruleColor;
+        }
+
         document.getElementById('daily-attend-count').textContent = `${attendCount} 人`;
-        document.getElementById('daily-absent-count').textContent = `${absentCount} 人`;
-        document.getElementById('daily-late-count').textContent = `${lateCount} 人`;
+        document.getElementById('daily-late-count').textContent = `${lateExcusedCount + lateUnexcusedCount} 人`;
+        let lateExcusedEl = document.getElementById('daily-late-excused-count');
+        if(lateExcusedEl) lateExcusedEl.textContent = `${lateExcusedCount} 人`;
+        let lateUnexcusedEl = document.getElementById('daily-late-unexcused-count');
+        if(lateUnexcusedEl) lateUnexcusedEl.textContent = `${lateUnexcusedCount} 人`;
+        
         document.getElementById('daily-early-count').textContent = `${earlyCount} 人`;
-        document.getElementById('daily-other-count').textContent = `${otherCount} 人`;
+
+        document.getElementById('daily-absent-count').textContent = `${absentExcusedCount + absentUnexcusedCount} 人`;
+        let absentExcusedEl = document.getElementById('daily-absent-excused-count');
+        if(absentExcusedEl) absentExcusedEl.textContent = `${absentExcusedCount} 人`;
+        let absentUnexcusedEl = document.getElementById('daily-absent-unexcused-count');
+        if(absentUnexcusedEl) absentUnexcusedEl.textContent = `${absentUnexcusedCount} 人`;
 
         document.getElementById('daily-summary-panel').style.display = 'block';
     }

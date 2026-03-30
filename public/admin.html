@@ -12,7 +12,6 @@
     <title>管理画面 - 部活出欠管理システム</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <link rel="manifest" href="/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -45,18 +44,21 @@
                 </div>
             </div>
 
-            <section style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
-                <h2 style="margin-bottom: 10px;">📱 部員へシステムを共有（QRコード表示）</h2>
-                <p style="color: #666; margin-bottom: 15px;">同じWi-Fi（ネットワーク）に繋がっているスマホから、以下のQRコードを読み取ってアクセスしてください。<br>※この画面を部員に見せて読み取ってもらうか、URLをLINE等で共有して使えます。</p>
-                <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
-                    <div id="qrcode-container" style="padding: 10px; background: white; border: 1px solid #ddd; border-radius: 8px;"></div>
-                    <div style="flex: 1; min-width: 250px;">
-                        <p style="font-size: 0.9rem; font-weight: bold; margin-bottom: 5px;">アクセスURL:</p>
-                        <input type="text" id="share-url-input" readonly style="width: 100%; padding: 10px; background: #f9fafb; border: 1px solid #ccc; border-radius: 5px; font-family: monospace;">
-                        <button type="button" id="copy-url-btn" style="margin-top: 10px; padding: 8px 15px; font-size: 0.85rem; background: #4F46E5; color: white; border: none; border-radius: 6px; cursor: pointer;">URLをコピー</button>
-                    </div>
+            <section style="margin-bottom: 25px; padding: 20px; border: 2px solid #ef4444; background: #fef2f2; border-radius: 12px;">
+                <h2 style="color: #ef4444; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">🚨 緊急事態 / 活動停止措置</h2>
+                <p style="font-size: 0.9rem; color: #991b1b; margin-bottom: 15px; line-height: 1.5;">
+                    部員全員の画面を「活動停止画面」に強制ロックし、本日を強制的に「休養日（完全休日）」扱いに上書きします。
+                </p>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="emergency-reason" style="color: #b91c1c; font-weight: bold;">措置の理由・全体メッセージ (入力推奨)</label>
+                    <input type="text" id="emergency-reason" placeholder="例: 大雨警報発令のため、本日の部活動は中止とします。" style="width: 100%; border: 1px solid #fca5a5; padding: 10px; border-radius: 6px; font-size: 1rem;">
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" id="btn-trigger-emergency" class="btn" style="background: #ef4444; color: white; border: none; flex: 1; font-weight: bold; padding: 12px; border-radius: 8px;">ロック / 発令する</button>
+                    <button type="button" id="btn-resolve-emergency" class="btn" style="background: white; color: #ef4444; border: 2px solid #ef4444; flex: 1; font-weight: bold; padding: 12px; border-radius: 8px;">ロックを解除</button>
                 </div>
             </section>
+
 
             <section style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
                 <h2 style="margin-bottom: 10px;">部員の追加</h2>
@@ -91,18 +93,33 @@
                 </form>
             </section>
 
-            <section style="margin-bottom: 10px;">
-                <h2 style="margin-bottom: 10px;">休日活動の設定</h2>
-                <p style="color: #666; margin-bottom: 15px;">ここで設定した日付は、休日に活動した日としてカレンダーや統計で記録されます。</p>
-                <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <input type="date" id="holiday-date-input" style="flex: 1;">
-                    <button type="button" id="add-holiday-btn" class="btn primary" style="padding: 0 15px; border-radius: 8px; background: #4F46E5; color: white; border: none;">追加</button>
+            <section style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
+                <h2 style="margin-bottom: 10px;">例外日程（ルール変更）の設定</h2>
+                <p style="color: #666; margin-bottom: 15px;">期間とルールを選んで「追加」を押すことで、指定した期間の部活ルール（開始時間や休み）を上書きできます。1日だけ変更する場合は開始日と終了日を同じ日にしてください。</p>
+                <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap;">
+                    <input type="date" id="override-start-date" style="flex: 1; min-width: 130px;" required>
+                    <span style="font-weight: bold; color: #555;">〜</span>
+                    <input type="date" id="override-end-date" style="flex: 1; min-width: 130px;" required>
+                    <select id="override-type" style="padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem;">
+                        <option value="weekday">平日扱い (16:30〜)</option>
+                        <option value="holiday">土曜扱い (9:30〜)</option>
+                        <option value="off">休み (部活なし)</option>
+                    </select>
+                    <button type="button" id="add-override-btn" class="btn primary" style="padding: 8px 15px; border-radius: 6px; background: #4F46E5; color: white; border: none;">追加</button>
                 </div>
-                <ul id="holiday-dates-list" style="list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                <ul id="override-dates-list" style="list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+                    <!-- JavaScriptで動的に追加 -->
                 </ul>
-                <form id="settings-form">
-                    <button type="submit" class="submit-btn">休日活動の設定を保存</button>
+
+                <form id="settings-form" style="text-align: right; margin-top: 20px;">
+                    <button type="submit" class="submit-btn" style="background: #1F2937;">これら2つの変更をすべて保存する</button>
                 </form>
+            </section>
+
+            <section style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea; background-color: #FEF2F2; padding: 20px; border-radius: 12px;">
+                <h2 style="color: #DC2626; margin-bottom: 10px;">⚠️ 危険な操作（データ初期化）</h2>
+                <p style="color: #7F1D1D; margin-bottom: 15px;">全メンバーの現在の出欠状況と、過去のすべての活動履歴（カレンダー）を完全に消去し、初期状態に戻します。この操作は取り消せません。</p>
+                <button type="button" id="clear-history-btn" style="background: #DC2626; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">全活動記録を完全に消去する</button>
             </section>
         </div>
 
@@ -114,6 +131,6 @@
         <br><a href="index.html" class="nav-link" style="color: #6B7280; margin-top: 15px; display: inline-block;">🏠 ログイン・起動画面へ戻る</a></div>
     </div>
     
-    <script src="admin.js"></script>
+    <script src="admin.js?v=1.3"></script>
 </body>
 </html>

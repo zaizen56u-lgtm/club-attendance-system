@@ -1,3 +1,10 @@
+const globalSocket = io();
+
+// サーバーからの強制リロード命令
+globalSocket.on('forceReload', () => {
+    window.location.reload();
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     const socket = io();
     const gridContainer = document.getElementById('members-grid');
@@ -36,17 +43,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const attendDisplay = member.attendTime || '-';
         const leaveDisplay = member.leaveTime || '-';
 
+        const showReason = (member.status === '欠席' || member.status === '遅刻' || member.status === '一時外出') && member.reason;
+        const reasonHtml = showReason 
+            ? `<div class="member-reason" style="font-size:0.85rem; color:#d97706; margin-top:5px; margin-bottom:12px; padding:8px 10px; background:#fef3c7; border-radius:6px; text-align:left; line-height:1.5; word-break:break-word; display:flex; gap:6px;">
+                 <span class="reason-label" style="font-weight:bold; flex-shrink:0;">${member.status === '一時外出' ? '用件/行先:' : '理由:'}</span>
+                 <span class="reason-text" style="flex-grow:1;">${member.reason}</span>
+               </div>` 
+            : `<div class="member-reason" style="display:none; font-size:0.85rem; color:#d97706; margin-top:5px; margin-bottom:12px; padding:8px 10px; background:#fef3c7; border-radius:6px; text-align:left; line-height:1.5; word-break:break-word; display:flex; gap:6px;">
+                 <span class="reason-label" style="font-weight:bold; flex-shrink:0;"></span>
+                 <span class="reason-text" style="flex-grow:1;"></span>
+               </div>`;
+
         card.innerHTML = `
-            <div class="member-info">
+            <div class="member-info" style="margin-bottom: 8px;">
                 <div class="member-name">${member.name}</div>
                 <div class="member-status-group">
                     <div class="member-status">${member.status}</div>
                     <div class="member-location">📍 ${member.location}</div>
                 </div>
             </div>
-            <div style="font-size: 0.85rem; color: #555; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #ccc; display: flex; justify-content: space-between; font-weight: bold;">
-                <span class="member-attend">登: ${attendDisplay}</span>
-                <span class="member-leave">退: ${leaveDisplay}</span>
+            ${reasonHtml}
+            <div style="font-size: 0.85rem; color: #555; margin-top: auto; padding-top: 8px; border-top: 1px dashed #ccc; display: flex; justify-content: space-between; font-weight: bold;">
+                <span class="member-attend">出席: ${attendDisplay}</span>
+                <span class="member-leave">退席: ${leaveDisplay}</span>
             </div>
             <div class="member-update" id="update-time-${member.id}">${updateTimeDisplay}</div>
         `;
@@ -64,8 +83,21 @@ document.addEventListener('DOMContentLoaded', () => {
             card.querySelector('.member-location').textContent = `📍 ${member.location}`;
             card.querySelector('.member-update').textContent = `${member.lastUpdate} 更新`;
             
-            card.querySelector('.member-attend').textContent = `登: ${member.attendTime || '-'}`;
-            card.querySelector('.member-leave').textContent = `退: ${member.leaveTime || '-'}`;
+            card.querySelector('.member-attend').textContent = `出席: ${member.attendTime || '-'}`;
+            card.querySelector('.member-leave').textContent = `退席: ${member.leaveTime || '-'}`;
+
+            // 理由の表示更新
+            const reasonEl = card.querySelector('.member-reason');
+            if (reasonEl) {
+                if ((member.status === '欠席' || member.status === '遅刻' || member.status === '一時外出') && member.reason) {
+                    reasonEl.style.display = 'flex';
+                    reasonEl.querySelector('.reason-label').textContent = member.status === '一時外出' ? '用件/行先:' : '理由:';
+                    reasonEl.querySelector('.reason-text').textContent = member.reason;
+                } else {
+                    reasonEl.style.display = 'none';
+                    reasonEl.querySelector('.reason-text').textContent = '';
+                }
+            }
 
             // アニメーションを再適用（一度外して付け直す）
             card.classList.remove('highlight');

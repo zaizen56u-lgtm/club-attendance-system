@@ -9,10 +9,11 @@
     
     /* ステータス別のカラー */
     --status-attending: #10B981; /* 出席: Green */
-    --status-leaving: #6B7280;   /* 退席: Gray */
+    --status-leaving: #3B82F6;   /* 退席: Blue */
+    --status-late: #EA580C;      /* 遅刻: Orange */
     --status-break: #F59E0B;     /* 休憩: Yellow */
-    --status-out: #3B82F6;       /* 外出: Blue */
-    --status-early: #EF4444;     /* 早退: Red */
+    --status-outing: #0D9488;    /* 一時外出: Teal */
+    --status-absent: #EF4444;    /* 欠席/早退: Red */
     --status-default: #D1D5DB;   /* 未設定 */
 }
 
@@ -23,12 +24,20 @@
 }
 
 body {
-    font-family: 'Inter', "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans JP", Arial, sans-serif;
     background-color: var(--bg-color);
     color: var(--text-main);
-    font-size: 16px; /* ベースフォントサイズを16pxで統一 */
     line-height: 1.6;
+    font-size: 1rem;
+    overflow-x: hidden;
+    word-break: auto-phrase;
+    overflow-wrap: break-word;
+    font-feature-settings: "palt";
     -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, p, label {
+    word-break: auto-phrase;
 }
 
 h1 { font-size: 1.5rem !important; }
@@ -355,14 +364,20 @@ select:focus, input[type="password"]:focus {
 .member-card[data-status="退席"] { border-left-color: var(--status-leaving); opacity: 0.8; }
 .member-card[data-status="退席"] .member-status { background-color: var(--status-leaving); }
 
+.member-card[data-status="遅刻"] { border-left-color: var(--status-late); }
+.member-card[data-status="遅刻"] .member-status { background-color: var(--status-late); }
+
+.member-card[data-status="欠席"] { border-left-color: var(--status-absent); opacity: 0.8; }
+.member-card[data-status="欠席"] .member-status { background-color: var(--status-absent); }
+
 .member-card[data-status="休憩"] { border-left-color: var(--status-break); }
-.member-card[data-status="休憩"] .member-status { background-color: var(--status-break); color: #fff; }
+.member-card[data-status="休憩"] .member-status { background-color: var(--status-break); }
 
-.member-card[data-status="外出"] { border-left-color: var(--status-out); }
-.member-card[data-status="外出"] .member-status { background-color: var(--status-out); }
+.member-card[data-status="一時外出"] { border-left-color: var(--status-outing); }
+.member-card[data-status="一時外出"] .member-status { background-color: var(--status-outing); }
 
-.member-card[data-status="早退"] { border-left-color: var(--status-early); opacity: 0.8;}
-.member-card[data-status="早退"] .member-status { background-color: var(--status-early); }
+.member-card[data-status="早退"] { border-left-color: var(--status-absent); opacity: 0.8;}
+.member-card[data-status="早退"] .member-status { background-color: var(--status-absent); }
 
 .member-card[data-status="未設定"] { border-left-color: var(--status-default); }
 .member-card[data-status="未設定"] .member-status { background-color: var(--status-default); color: var(--text-main); border: 1px solid var(--border-color);}

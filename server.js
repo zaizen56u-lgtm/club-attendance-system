@@ -14,11 +14,33 @@ const MASTER_PASSWORD = "denken1975"; // 全員分の出欠入力を可能にす
 
 // 部員の初期データ (名前, パスワード, 現在のステータス, 活動場所, 最終更新時刻)
 let members = [
-  { id: 1, name: "山田 太郎", password: "0000", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
-  { id: 2, name: "佐藤 花子", password: "1111", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
-  { id: 3, name: "鈴木 一郎", password: "2222", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" }
+  { id: 1, name: "齋藤広平", password: "2139", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 2, name: "酒井翔太郎", password: "2142", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 3, name: "竹原翔斗", password: "2166", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 4, name: "津志田悠希", password: "2319", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 5, name: "牧治翔", password: "2469", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 6, name: "内川龍馬", password: "3113", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 7, name: "桑原大翔", password: "3140", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 8, name: "坂田麻衣子", password: "3398", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 9, name: "高山蒼", password: "3284", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 10, name: "松野大翔", password: "3197", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 11, name: "生駒真太朗", password: "4189", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 12, name: "吉村成宏", password: "4435", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 13, name: "宮本王道", password: "4411", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 14, name: "牛島健斗", password: "5220", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 15, name: "澤村悠真", password: "5268", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 16, name: "竹ノ井海斗", password: "5304", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 17, name: "成嶋昊", password: "5340", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 18, name: "中山心春", password: "5556", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 19, name: "野田伊織", password: "5346", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 20, name: "原田透志", password: "5352", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 21, name: "松永知也", password: "5388", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 22, name: "松藤叶汰", password: "5394", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 23, name: "豊田理琴", password: "2181", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 24, name: "西美咲希", password: "2196", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 25, name: "廣野達徳", password: "3194", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" }
 ];
-let nextMemberId = 4;
+let nextMemberId = 26;
 
 // 履歴ログの保存用配列
 let historyLogs = [];
@@ -29,7 +51,15 @@ let nextScheduleId = 1;
 
 // システム設定保存用
 let systemSettings = {
-    holidayDates: [] // 例: ['2026-03-20', '2026-04-05']
+    weekdayDates: [], // 16:30〜 (強制平日)
+    holidayDates: [], // 09:30〜 (土曜扱い)
+    offDates: []      // 休み (完全休養)
+};
+
+// 緊急事態（全画面ロック）設定
+let emergencyState = {
+    active: false,
+    reason: ""
 };
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -48,7 +78,7 @@ io.on('connection', (socket) => {
 
   // クライアントからのステータス更新要求を受信
   socket.on('updateStatus', (data, callback) => {
-    const { id, password, newStatus, newLocation } = data;
+    const { id, password, newStatus, newLocation, reason } = data;
     
     // メンバーの検索とパスワード検証
     const member = members.find(m => m.id === parseInt(id, 10));
@@ -66,6 +96,8 @@ io.on('connection', (socket) => {
     // 更新処理
     member.status = newStatus;
     member.location = newLocation;
+    member.reason = reason || "";
+
     const now = new Date();
     const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     member.lastUpdate = timeStr;
@@ -82,11 +114,12 @@ io.on('connection', (socket) => {
       name: member.name,
       status: newStatus,
       location: newLocation,
+      reason: reason || "",
       timestamp: now.toISOString()
     });
 
     // 更新成功を返す
-    if(callback) callback({ success: true, member: { id: member.id, name: member.name, status: member.status, location: member.location, lastUpdate: member.lastUpdate } });
+    if(callback) callback({ success: true, member: { id: member.id, name: member.name, status: member.status, location: member.location, reason: member.reason, lastUpdate: member.lastUpdate, attendTime: member.attendTime, leaveTime: member.leaveTime } });
 
     // 全クライアントに変更をブロードキャスト
     io.emit('statusChanged', {
@@ -94,7 +127,10 @@ io.on('connection', (socket) => {
       name: member.name,
       status: member.status,
       location: member.location,
-      lastUpdate: member.lastUpdate
+      reason: member.reason,
+      lastUpdate: member.lastUpdate,
+      attendTime: member.attendTime,
+      leaveTime: member.leaveTime
     });
   });
 
@@ -125,7 +161,9 @@ io.on('connection', (socket) => {
       password: password,
       status: "未設定",
       location: "-",
-      lastUpdate: "-"
+      lastUpdate: "-",
+      attendTime: "-",
+      leaveTime: "-"
     };
     members.push(newMember);
 
@@ -151,10 +189,40 @@ io.on('connection', (socket) => {
       return;
     }
 
-    if(callback) callback({ success: true });
-    
-    // 全体に通知
+    if(callback) callback({ success: true, memberList: members });
     io.emit('memberListUpdated');
+  });
+
+  // 管理者向け: 全データの初期化
+  socket.on('clearAllHistory', (data, callback) => {
+    const { adminPassword } = data;
+    if (adminPassword !== ADMIN_PASSWORD && adminPassword !== MASTER_PASSWORD) {
+      if(callback) callback({ success: false, message: "権限がありません" });
+      return;
+    }
+    
+    // 全履歴を削除
+    historyLogs = [];
+    
+    // 全員のステータスを初期化
+    members.forEach(m => {
+        m.status = "未設定";
+        m.location = "-";
+        m.lastUpdate = "-";
+        m.attendTime = "-";
+        m.leaveTime = "-";
+    });
+    
+    // 全クライアントに変更を通知
+    io.emit('memberListUpdated');
+    
+    // 履歴更新を通知
+    io.emit('historyUpdated', historyLogs);
+    
+    // 全クライアントの画面を強制的にリロードして白紙状態を反映させる
+    io.emit('forceReload');
+    
+    if(callback) callback({ success: true });
   });
 
   // 管理者向け: 履歴の取得
@@ -218,6 +286,62 @@ io.on('connection', (socket) => {
     systemSettings = { ...systemSettings, ...newSettings };
     io.emit('settingsUpdated', systemSettings);
     if(callback) callback({ success: true, settings: systemSettings });
+  });
+
+  // ========== 緊急事態（システム停止）機能 ==========
+  
+  // 初回接続時の状態確認
+  socket.on('checkEmergencyState', () => {
+    socket.emit('emergencyStateUpdate', emergencyState);
+  });
+
+  // 緊急事態発令
+  socket.on('triggerEmergency', (data, callback) => {
+    const { emergencyPassword, reason } = data;
+    if (emergencyPassword !== "Yamamoto5106(1!1)") {
+      if(callback) callback({ success: false, message: "パスワードが違います" });
+      return;
+    }
+    
+    emergencyState.active = true;
+    emergencyState.reason = reason || "非常事態による部内における活動停止措置";
+
+    // 発令日を強制的に「完全休日(offDate)」に登録
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    
+    if (!systemSettings.offDates) systemSettings.offDates = [];
+    if (!systemSettings.offDates.includes(todayStr)) {
+        systemSettings.offDates.push(todayStr);
+    }
+    // 他の設定（活動日・土曜扱い）と競合しないよう削除
+    if (systemSettings.holidayDates) {
+        systemSettings.holidayDates = systemSettings.holidayDates.filter(d => d !== todayStr);
+    }
+    if (systemSettings.weekdayDates) {
+        systemSettings.weekdayDates = systemSettings.weekdayDates.filter(d => d !== todayStr);
+    }
+
+    io.emit('settingsUpdated', systemSettings); // 設定更新を通知
+    io.emit('emergencyStateUpdate', emergencyState); // ロック画面を通知
+
+    if(callback) callback({ success: true, emergencyState, settings: systemSettings });
+  });
+
+  // 緊急事態解除
+  socket.on('resolveEmergency', (data, callback) => {
+    const { emergencyPassword } = data;
+    if (emergencyPassword !== "Yamamoto5106(1!1)") {
+      if(callback) callback({ success: false, message: "パスワードが違います" });
+      return;
+    }
+
+    emergencyState.active = false;
+    emergencyState.reason = "";
+    
+    io.emit('emergencyStateUpdate', emergencyState);
+
+    if(callback) callback({ success: true, emergencyState });
   });
 
   socket.on('disconnect', () => {

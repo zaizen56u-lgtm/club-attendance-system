@@ -1,3 +1,10 @@
+const ioSocket = io();
+
+// サーバーからの強制リロード命令
+ioSocket.on('forceReload', () => {
+    window.location.reload();
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     const socket = io();
     const alertBox = document.getElementById('alert-box');
@@ -8,6 +15,62 @@ document.addEventListener('DOMContentLoaded', () => {
     const bulkContainer = document.getElementById('bulk-members-container');
     const bulkForm = document.getElementById('bulk-update-form');
     const settingsForm = document.getElementById('settings-form');
+
+    // === 緊急事態機能の初期化 ===
+    const triggerBtn = document.getElementById('btn-trigger-emergency');
+    const resolveBtn = document.getElementById('btn-resolve-emergency');
+    const emergencyReasonInput = document.getElementById('emergency-reason');
+    
+    if (triggerBtn && resolveBtn) {
+        socket.on('emergencyStateUpdate', (state) => {
+            if (state.active) {
+                triggerBtn.style.display = 'none';
+                resolveBtn.style.display = 'block';
+                emergencyReasonInput.value = state.reason;
+                emergencyReasonInput.disabled = true;
+                emergencyReasonInput.style.background = '#fee2e2';
+            } else {
+                triggerBtn.style.display = 'block';
+                resolveBtn.style.display = 'none';
+                emergencyReasonInput.value = '';
+                emergencyReasonInput.disabled = false;
+                emergencyReasonInput.style.background = 'white';
+            }
+        });
+        socket.emit('checkEmergencyState');
+
+        triggerBtn.addEventListener('click', () => {
+            const emergencyPass = prompt('緊急事態発令用パスワードを入力してください:');
+            if (!emergencyPass) return;
+            
+            if (!confirm('本当に発令しますか？全部員の画面がロックされ、本日は強制休日扱いとなります。')) return;
+            
+            const reason = emergencyReasonInput.value.trim();
+            socket.emit('triggerEmergency', { emergencyPassword: emergencyPass, reason }, (res) => {
+                if (res.success) {
+                    showAlert('成功', '非常事態措置を発令し、全画面を強制ロックしました。', 'success');
+                    if (typeof loadSettings === 'function') loadSettings();
+                } else {
+                    showAlert('エラー', res.message || '権限がありません。', 'error');
+                }
+            });
+        });
+
+        resolveBtn.addEventListener('click', () => {
+            const emergencyPass = prompt('緊急事態解除用パスワードを入力してください:');
+            if (!emergencyPass) return;
+            
+            if (!confirm('本当に解除して通常状態に戻しますか？')) return;
+            
+            socket.emit('resolveEmergency', { emergencyPassword: emergencyPass }, (res) => {
+                if (res.success) {
+                    showAlert('成功', 'システムロックを解除しました。', 'success');
+                } else {
+                    showAlert('エラー', res.message || '権限がありません。', 'error');
+                }
+            });
+        });
+    }
 
     // 削除用リストの読み込み
     function loadMembers() {
@@ -37,10 +100,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             <option value="-" ${m.status==='-'?'selected':''}>-</option>
                             <option value="出席" ${m.status==='出席'?'selected':''}>出席</option>
                             <option value="退席" ${m.status==='退席'?'selected':''}>退席</option>
-                            <option value="休憩" ${m.status==='休憩'?'selected':''}>休憩</option>
-                            <option value="外出" ${m.status==='外出'?'selected':''}>外出</option>
-                            <option value="早退" ${m.status==='早退'?'selected':''}>早退</option>
+                            <option value="遅刻" ${m.status==='遅刻'?'selected':''}>遅刻</option>
                             <option value="欠席" ${m.status==='欠席'?'selected':''}>欠席</option>
+                            <option value="休憩" ${m.status==='休憩'?'selected':''}>休憩</option>
+                            <option value="一時外出" ${m.status==='一時外出'?'selected':''}>一時外出</option>
                         </select>
                         <select class="bulk-location" style="width: 130px; padding: 6px; border-radius: 4px; border: 1px solid #D1D5DB;">
                             <option value="-" ${m.location==='-'?'selected':''}>-</option>
@@ -54,82 +117,105 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    // 設定情報の読み込み
-    const holidayDateInput = document.getElementById('holiday-date-input');
-    const addHolidayBtn = document.getElementById('add-holiday-btn');
-    const holidayDatesList = document.getElementById('holiday-dates-list');
-    let currentHolidayDates = [];
+    const overrideStartDateInput = document.getElementById('override-start-date');
+    const overrideEndDateInput = document.getElementById('override-end-date');
+    const overrideTypeSelect = document.getElementById('override-type');
+    const addOverrideBtn = document.getElementById('add-override-btn');
+    const overrideDatesList = document.getElementById('override-dates-list');
 
-    function renderHolidayDates() {
-        holidayDatesList.innerHTML = '';
-        currentHolidayDates.sort(); // 日付順にソート
-        currentHolidayDates.forEach(dateStr => {
+    let currentWeekdayDates = [];
+    let currentHolidayDates = [];
+    let currentOffDates = [];
+
+    function getTypeLabel(type) {
+        if(type === 'weekday') return { label: '平日扱い (16:30〜)', color: '#2563EB', bg: '#EFF6FF' };
+        if(type === 'holiday') return { label: '土曜扱い (9:30〜)', color: '#D97706', bg: '#FEF3C7' };
+        if(type === 'off') return { label: '休み (部活なし)', color: '#059669', bg: '#D1FAE5' };
+        return { label: '', color: '#000', bg: '#fff' };
+    }
+
+    function renderOverrideDates() {
+        overrideDatesList.innerHTML = '';
+        
+        let allOverrides = [];
+        currentWeekdayDates.forEach(d => allOverrides.push({ date: d, type: 'weekday' }));
+        currentHolidayDates.forEach(d => allOverrides.push({ date: d, type: 'holiday' }));
+        currentOffDates.forEach(d => allOverrides.push({ date: d, type: 'off' }));
+        
+        allOverrides.sort((a,b) => a.date.localeCompare(b.date));
+
+        allOverrides.forEach(item => {
+            const style = getTypeLabel(item.type);
             const li = document.createElement('li');
-            li.style.cssText = "background: #FEE2E2; color: #B91C1C; padding: 2px 10px; border-radius: 20px; display: flex; align-items: center; gap: 8px;";
+            li.style.cssText = `background: ${style.bg}; color: ${style.color}; padding: 4px 12px; border-radius: 20px; display: flex; align-items: center; gap: 8px; font-size: 0.95rem;`;
             li.innerHTML = `
-                <span>${dateStr}</span>
-                <button type="button" data-date="${dateStr}" class="remove-holiday-btn" style="border: none; background: transparent; color: #991B1B; cursor: pointer; line-height: 1;">&times;</button>
+                <span><strong>${item.date}</strong> : ${style.label}</span>
+                <button type="button" data-date="${item.date}" data-type="${item.type}" class="remove-override-btn" style="border: none; background: transparent; color: ${style.color}; cursor: pointer; line-height: 1; font-size: 1.2rem; margin-left: 5px;">&times;</button>
             `;
-            holidayDatesList.appendChild(li);
+            overrideDatesList.appendChild(li);
         });
-        document.querySelectorAll('.remove-holiday-btn').forEach(btn => {
+
+        document.querySelectorAll('.remove-override-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const removeDate = e.target.dataset.date;
-                currentHolidayDates = currentHolidayDates.filter(d => d !== removeDate);
-                renderHolidayDates();
+                const removeType = e.target.dataset.type;
+                if (removeType === 'weekday') currentWeekdayDates = currentWeekdayDates.filter(d => d !== removeDate);
+                if (removeType === 'holiday') currentHolidayDates = currentHolidayDates.filter(d => d !== removeDate);
+                if (removeType === 'off') currentOffDates = currentOffDates.filter(d => d !== removeDate);
+                renderOverrideDates();
             });
         });
     }
 
-    addHolidayBtn.addEventListener('click', () => {
-        const dateVal = holidayDateInput.value;
-        if (!dateVal) return;
-        if (!currentHolidayDates.includes(dateVal)) {
-            currentHolidayDates.push(dateVal);
-            renderHolidayDates();
+    addOverrideBtn.addEventListener('click', () => {
+        const startVal = overrideStartDateInput.value;
+        const endVal = overrideEndDateInput.value;
+        const typeVal = overrideTypeSelect.value;
+        if (!startVal || !endVal) return;
+
+        const start = new Date(startVal);
+        const end = new Date(endVal);
+        if (start > end) {
+            showAlert('エラー', '終了日は開始日以降にしてください。', 'error');
+            return;
         }
-        holidayDateInput.value = '';
+
+        let current = new Date(start);
+        let added = false;
+        while (current <= end) {
+            const localDate = new Date(current.getTime() - (current.getTimezoneOffset() * 60000));
+            const dateStr = localDate.toISOString().split('T')[0];
+
+            currentWeekdayDates = currentWeekdayDates.filter(d => d !== dateStr);
+            currentHolidayDates = currentHolidayDates.filter(d => d !== dateStr);
+            currentOffDates = currentOffDates.filter(d => d !== dateStr);
+
+            if (typeVal === 'weekday') currentWeekdayDates.push(dateStr);
+            if (typeVal === 'holiday') currentHolidayDates.push(dateStr);
+            if (typeVal === 'off') currentOffDates.push(dateStr);
+            
+            added = true;
+            current.setDate(current.getDate() + 1);
+        }
+
+        if (added) renderOverrideDates();
+        overrideStartDateInput.value = '';
+        overrideEndDateInput.value = '';
     });
 
     function loadSettings() {
         socket.emit('getSettings', (res) => {
             if (res.success) {
+                currentWeekdayDates = res.settings.weekdayDates || [];
                 currentHolidayDates = res.settings.holidayDates || [];
-                renderHolidayDates();
+                currentOffDates = res.settings.offDates || [];
+                renderOverrideDates();
             }
-        });
-    }
-
-    function loadNetworkInfo() {
-        const qrContainer = document.getElementById('qrcode-container');
-        const urlInput = document.getElementById('share-url-input');
-        if(!qrContainer) return;
-
-        // クライアントがアクセスしているベースURLを直接取得することで
-        // ローカル環境、およびすべてのクラウドホスティング環境に一律対応させます
-        const targetUrl = window.location.origin;
-        urlInput.value = targetUrl;
-        
-        qrContainer.innerHTML = '';
-        new QRCode(qrContainer, {
-            text: targetUrl,
-            width: 140,
-            height: 140,
-            colorDark : "#0f172a",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.M
-        });
-            
-        document.getElementById('copy-url-btn').addEventListener('click', () => {
-            urlInput.select();
-            document.execCommand('copy');
-            showAlert('情報', '共有用URLをクリップボードにコピーしました！', 'success');
         });
     }
 
     loadMembers();
     loadSettings();
-    loadNetworkInfo();
 
     socket.on('memberListUpdated', () => {
         loadMembers();
@@ -206,11 +292,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const status = row.querySelector('.bulk-status').value;
             const location = row.querySelector('.bulk-location').value;
 
-            // 変更があった部員だけを更新キューに入れる
             if (status !== origStatus || location !== origLocation) {
+                const reason = (status === '欠席' || status === '遅刻' || status === '一時外出') ? '管理者による強制変更' : '';
                 updatedCount++;
                 updatePromises.push(new Promise((resolve) => {
-                    socket.emit('updateStatus', { id, password: adminPassword, newStatus: status, newLocation: location }, (res) => {
+                    socket.emit('updateStatus', { id, password: adminPassword, newStatus: status, newLocation: location, reason }, (res) => {
                         resolve(res); // 以前の resolve(res.success) から res 全体を返すように変更
                     });
                 }));
@@ -240,18 +326,51 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const adminPassword = adminPasswordInput.value;
         if (!adminPassword) {
+            alert('【エラー】設定用パスワードを入力してから保存ボタンを押してください！');
             showAlert('エラー', '設定用パスワードを入力してください。', 'error');
             return;
         }
         
-        socket.emit('updateSettings', { adminPassword, newSettings: { holidayDates: currentHolidayDates } }, (res) => {
+        socket.emit('updateSettings', { adminPassword, newSettings: { weekdayDates: currentWeekdayDates, holidayDates: currentHolidayDates, offDates: currentOffDates } }, (res) => {
             if (res.success) {
-                showAlert('成功', '休日設定を更新しました。', 'success');
+                alert('【成功】設定を保存しました！カレンダーをご確認ください。');
+                showAlert('成功', '例外日程を保存しました。', 'success');
             } else {
+                alert('【エラー】' + res.message);
                 showAlert('エラー', res.message, 'error');
             }
         });
     });
+
+    // 履歴・状況の全消去処理
+    const clearHistoryBtn = document.getElementById('clear-history-btn');
+    if (clearHistoryBtn) {
+        clearHistoryBtn.addEventListener('click', () => {
+            const adminPassword = document.getElementById('admin-password').value;
+            if (!adminPassword) {
+                showAlert('エラー', '管理用パスワードを入力してください。', 'error');
+                return;
+            }
+            
+            if (!confirm('⚠️ 警告\n本当に全ての出欠状況と活動記録（履歴）を完全に消去しますか？\n（この操作は絶対に取り消せません。年度替わり等のリセットのみに使用してください）')) {
+                return;
+            }
+            
+            // 念のため二重確認
+            if (!confirm('最終確認です。全てのデータが消えます。よろしいですか？')) {
+                return;
+            }
+
+            socket.emit('clearAllHistory', { adminPassword }, (response) => {
+                if (response.success) {
+                    showAlert('成功', '全ての活動記録とステータスを初期化しました。', 'success');
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    showAlert('エラー', response.message || '消去に失敗しました。', 'error');
+                }
+            });
+        });
+    }
 
     function showAlert(title, message, type) {
         alertBox.textContent = `[${title}] ${message}`;
