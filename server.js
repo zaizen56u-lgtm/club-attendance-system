@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 const os = require('os');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -12,7 +13,6 @@ const io = new Server(server);
 const ADMIN_PASSWORD = "51068010A";
 const MASTER_PASSWORD = "denken1975"; // 全員分の出欠入力を可能にするマスターパスワード
 
-// 部員の初期データ (名前, パスワード, 現在のステータス, 活動場所, 最終更新時刻)
 let members = [
   { id: 1, name: "齋藤広平", password: "2139", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
   { id: 2, name: "酒井翔太郎", password: "2142", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
@@ -24,7 +24,7 @@ let members = [
   { id: 8, name: "坂田麻衣子", password: "3398", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
   { id: 9, name: "高山蒼", password: "3284", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
   { id: 10, name: "松野大翔", password: "3197", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
-  { id: 11, name: "生駒真太朗", password: "4189", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
+  { id: 11, name: "生駒真大朗", password: "4189", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
   { id: 12, name: "吉村成宏", password: "4435", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
   { id: 13, name: "宮本王道", password: "4411", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
   { id: 14, name: "牛島健斗", password: "5220", status: "未設定", location: "-", lastUpdate: "-", attendTime: "-", leaveTime: "-" },
@@ -61,6 +61,101 @@ let emergencyState = {
     active: false,
     reason: ""
 };
+
+// === データ永続化 (保存・復元) ロジック ===
+const dataDir = path.join(__dirname, 'data');
+const dbFile = path.join(dataDir, 'db.json');
+const mongoose = require('mongoose');
+
+if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir);
+}
+
+// MongoDBスキーマの定義
+const stateSchema = new mongoose.Schema({
+  key: { type: String, unique: true },
+  data: mongoose.Schema.Types.Mixed
+}, { strict: false });
+const StateModel = mongoose.model('State', stateSchema);
+
+let useMongoDB = false;
+
+// 起動時にデータを読み込む
+async function loadData() {
+    const mongoUri = process.env.MONGODB_URI;
+    if (mongoUri) {
+        try {
+            await mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true });
+            useMongoDB = true;
+            console.log("✅ MongoDBに接続しました。クラウドデータをチェックします...");
+            
+            const state = await StateModel.findOne({ key: 'appState' });
+            if (state && state.data) {
+                applyData(state.data);
+                console.log("✅ MongoDBからクラウドデータを復元しました。");
+            } else {
+                console.log("ℹ️ MongoDB上に初期データが存在しないため、システムの初期設定を使用します。");
+            }
+        } catch (e) {
+            console.error("❌ MongoDBの接続・読み込みに失敗しました:", e);
+        }
+    } else {
+        // フォールバック: ローカルファイル
+        if (fs.existsSync(dbFile)) {
+            try {
+                const data = fs.readFileSync(dbFile, 'utf8');
+                applyData(JSON.parse(data));
+                console.log("✅ 既存のローカルファイルデータを復元しました。");
+            } catch (e) {
+                console.error("❌ ローカルデータの読み込みに失敗しました:", e);
+            }
+        } else {
+            console.log("ℹ️ ローカルにデータが存在しないため、初期設定を使用します。");
+        }
+    }
+}
+
+function applyData(parsed) {
+    if (parsed.members) members = parsed.members;
+    if (parsed.nextMemberId) nextMemberId = parsed.nextMemberId;
+    if (parsed.historyLogs) historyLogs = parsed.historyLogs;
+    if (parsed.schedules) schedules = parsed.schedules;
+    if (parsed.nextScheduleId) nextScheduleId = parsed.nextScheduleId;
+    if (parsed.systemSettings) systemSettings = parsed.systemSettings;
+    if (parsed.emergencyState) emergencyState = parsed.emergencyState;
+}
+
+function saveData() {
+    const data = {
+        members,
+        nextMemberId,
+        historyLogs,
+        schedules,
+        nextScheduleId,
+        systemSettings,
+        emergencyState
+    };
+    
+    if (useMongoDB) {
+        // MongoDBへ非同期で書き込み
+        StateModel.updateOne(
+            { key: 'appState' }, 
+            { $set: { data: data } }, 
+            { upsert: true }
+        ).catch(e => console.error("❌ MongoDBへの保存に失敗しました:", e));
+    } else {
+        // ローカルファイルへ書き込み
+        try {
+            fs.writeFileSync(dbFile, JSON.stringify(data, null, 2), 'utf8');
+        } catch (e) {
+            console.error("❌ ローカルデータの保存に失敗しました:", e);
+        }
+    }
+}
+
+// 起動時にデータを読み込む
+loadData();
+// ========================================
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
@@ -132,6 +227,7 @@ io.on('connection', (socket) => {
       attendTime: member.attendTime,
       leaveTime: member.leaveTime
     });
+    saveData();
   });
 
   // 管理者向け: パスワード検証
@@ -171,6 +267,7 @@ io.on('connection', (socket) => {
     
     // メンバーリストが変更されたことを全体に通知（リダイレクトや再取得を促す）
     io.emit('memberListUpdated');
+    saveData();
   });
 
   // 管理者向け: メンバー削除
@@ -191,6 +288,7 @@ io.on('connection', (socket) => {
 
     if(callback) callback({ success: true, memberList: members });
     io.emit('memberListUpdated');
+    saveData();
   });
 
   // 管理者向け: 全データの初期化
@@ -223,6 +321,7 @@ io.on('connection', (socket) => {
     io.emit('forceReload');
     
     if(callback) callback({ success: true });
+    saveData();
   });
 
   // 管理者向け: 履歴の取得
@@ -255,6 +354,7 @@ io.on('connection', (socket) => {
     
     if(callback) callback({ success: true, schedule });
     io.emit('schedulesUpdated', schedules);
+    saveData();
   });
 
   // スケジュールの削除
@@ -269,6 +369,7 @@ io.on('connection', (socket) => {
     
     if(callback) callback({ success: true });
     io.emit('schedulesUpdated', schedules);
+    saveData();
   });
 
   // 設定の取得 (全員可能)
@@ -286,6 +387,7 @@ io.on('connection', (socket) => {
     systemSettings = { ...systemSettings, ...newSettings };
     io.emit('settingsUpdated', systemSettings);
     if(callback) callback({ success: true, settings: systemSettings });
+    saveData();
   });
 
   // ========== 緊急事態（システム停止）機能 ==========
@@ -326,6 +428,7 @@ io.on('connection', (socket) => {
     io.emit('emergencyStateUpdate', emergencyState); // ロック画面を通知
 
     if(callback) callback({ success: true, emergencyState, settings: systemSettings });
+    saveData();
   });
 
   // 緊急事態解除
@@ -342,6 +445,7 @@ io.on('connection', (socket) => {
     io.emit('emergencyStateUpdate', emergencyState);
 
     if(callback) callback({ success: true, emergencyState });
+    saveData();
   });
 
   socket.on('disconnect', () => {

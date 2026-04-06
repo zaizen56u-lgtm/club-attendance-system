@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let currentSettings = {};
+    let currentTeamView = window.currentTeamView || 'ALL'; // HTML側で指定された変数を読み込む
 
     socket.emit('getSettings', (res) => {
         if(res.success) {
@@ -102,14 +103,22 @@ document.addEventListener('DOMContentLoaded', () => {
             // カレンダーが期間を変更するたびにサーバーから予定一覧を取得
             socket.emit('getSchedules', (res) => {
                 if (res.success) {
-                    successCallback(res.schedules);
+                    const filtered = res.schedules.filter(s => {
+                        const sTeam = s.team || 'ALL'; // 過去データ等チームが無い場合は全体とする
+                        if (currentTeamView === 'A') return sTeam === 'A' || sTeam === 'ALL';
+                        if (currentTeamView === 'B') return sTeam === 'B' || sTeam === 'ALL';
+                        if (currentTeamView === 'ALL') return sTeam === 'ALL';
+                        return true;
+                    });
+                    successCallback(filtered);
                 } else {
                     failureCallback(res.message);
                 }
             });
         },
         select: function(info) {
-            const title = prompt('追加する予定のタイトルを入力してください:');
+            let label = currentTeamView === 'ALL' ? '部全体(共通)' : currentTeamView + 'チーム';
+            const title = prompt(`[${label}] 追加する予定のタイトルを入力してください:`);
             if (!title) { calendar.unselect(); return; }
             
             const pw = prompt('管理者用パスワードを入力してください (追加・編集権限):');
@@ -118,6 +127,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 calendar.unselect(); return;
             }
 
+            let eventColor = '#3B82F6'; // デフォルト: 青
+            if (currentTeamView === 'A') eventColor = '#EF4444'; // 赤
+            if (currentTeamView === 'B') eventColor = '#10B981'; // 緑
+
             socket.emit('addSchedule', {
                 adminPassword: pw,
                 schedule: {
@@ -125,7 +138,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     start: info.startStr,
                     end: info.endStr,
                     allDay: info.allDay,
-                    color: '#3B82F6' // 青色に設定
+                    color: eventColor,
+                    team: currentTeamView
                 }
             }, (res) => {
                 if(!res.success) alert(res.message);
