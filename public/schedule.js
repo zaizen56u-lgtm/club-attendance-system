@@ -34,12 +34,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const isHoliday = currentSettings.holidayDates && currentSettings.holidayDates.includes(dateStr);
             const isOffDate = currentSettings.offDates && currentSettings.offDates.includes(dateStr);
             const isWeekdayDate = currentSettings.weekdayDates && currentSettings.weekdayDates.includes(dateStr);
+            const customTimeObj = currentSettings.customDates && currentSettings.customDates[dateStr];
 
             let ruleText = "通常活動日 (16:30〜18:30)";
             let ruleColor = "#4338ca";
             if (isOffDate) {
                 ruleText = "休み (部活なし)";
                 ruleColor = "#10b981"; 
+            } else if (customTimeObj) {
+                ruleText = `時間指定 (${customTimeObj.start}〜${customTimeObj.end})`;
+                ruleColor = "#7E22CE";
             } else if (isHoliday) {
                 ruleText = "土曜扱い (9:30〜18:30)";
                 ruleColor = "#d97706"; 

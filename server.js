@@ -53,7 +53,8 @@ let nextScheduleId = 1;
 let systemSettings = {
     weekdayDates: [], // 16:30〜 (強制平日)
     holidayDates: [], // 09:30〜 (土曜扱い)
-    offDates: []      // 休み (完全休養)
+    offDates: [],     // 休み (完全休養)
+    customDates: {}   // 時間指定 (例: { "2026-04-10": { start: "13:00", end: "17:00" } })
 };
 
 // 緊急事態（全画面ロック）設定

@@ -120,12 +120,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const overrideStartDateInput = document.getElementById('override-start-date');
     const overrideEndDateInput = document.getElementById('override-end-date');
     const overrideTypeSelect = document.getElementById('override-type');
+    const customTimeInputs = document.getElementById('custom-time-inputs');
+    const overrideStartTime = document.getElementById('override-start-time');
+    const overrideEndTime = document.getElementById('override-end-time');
     const addOverrideBtn = document.getElementById('add-override-btn');
+
+    overrideTypeSelect.addEventListener('change', () => {
+        if (overrideTypeSelect.value === 'custom') {
+            customTimeInputs.style.display = 'flex';
+        } else {
+            customTimeInputs.style.display = 'none';
+        }
+    });
     const overrideDatesList = document.getElementById('override-dates-list');
 
     let currentWeekdayDates = [];
     let currentHolidayDates = [];
     let currentOffDates = [];
+    let currentCustomDates = {};
 
     function getTypeLabel(type) {
         if(type === 'weekday') return { label: '平日扱い (16:30〜)', color: '#2563EB', bg: '#EFF6FF' };
@@ -141,11 +153,17 @@ document.addEventListener('DOMContentLoaded', () => {
         currentWeekdayDates.forEach(d => allOverrides.push({ date: d, type: 'weekday' }));
         currentHolidayDates.forEach(d => allOverrides.push({ date: d, type: 'holiday' }));
         currentOffDates.forEach(d => allOverrides.push({ date: d, type: 'off' }));
+        Object.keys(currentCustomDates).forEach(d => allOverrides.push({ date: d, type: 'custom', timeStr: `${currentCustomDates[d].start}〜${currentCustomDates[d].end}` }));
         
         allOverrides.sort((a,b) => a.date.localeCompare(b.date));
 
         allOverrides.forEach(item => {
-            const style = getTypeLabel(item.type);
+            let style;
+            if (item.type === 'custom') {
+                style = { label: `時間指定 (${item.timeStr})`, color: '#7E22CE', bg: '#F3E8FF' }; // Purple for custom
+            } else {
+                style = getTypeLabel(item.type);
+            }
             const li = document.createElement('li');
             li.style.cssText = `background: ${style.bg}; color: ${style.color}; padding: 4px 12px; border-radius: 20px; display: flex; align-items: center; gap: 8px; font-size: 0.95rem;`;
             li.innerHTML = `
@@ -162,6 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (removeType === 'weekday') currentWeekdayDates = currentWeekdayDates.filter(d => d !== removeDate);
                 if (removeType === 'holiday') currentHolidayDates = currentHolidayDates.filter(d => d !== removeDate);
                 if (removeType === 'off') currentOffDates = currentOffDates.filter(d => d !== removeDate);
+                if (removeType === 'custom') delete currentCustomDates[removeDate];
                 renderOverrideDates();
             });
         });
@@ -189,10 +208,14 @@ document.addEventListener('DOMContentLoaded', () => {
             currentWeekdayDates = currentWeekdayDates.filter(d => d !== dateStr);
             currentHolidayDates = currentHolidayDates.filter(d => d !== dateStr);
             currentOffDates = currentOffDates.filter(d => d !== dateStr);
+            delete currentCustomDates[dateStr];
 
             if (typeVal === 'weekday') currentWeekdayDates.push(dateStr);
             if (typeVal === 'holiday') currentHolidayDates.push(dateStr);
             if (typeVal === 'off') currentOffDates.push(dateStr);
+            if (typeVal === 'custom') {
+                currentCustomDates[dateStr] = { start: overrideStartTime.value, end: overrideEndTime.value };
+            }
             
             added = true;
             current.setDate(current.getDate() + 1);
@@ -209,6 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentWeekdayDates = res.settings.weekdayDates || [];
                 currentHolidayDates = res.settings.holidayDates || [];
                 currentOffDates = res.settings.offDates || [];
+                currentCustomDates = res.settings.customDates || {};
                 renderOverrideDates();
             }
         });
@@ -331,7 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        socket.emit('updateSettings', { adminPassword, newSettings: { weekdayDates: currentWeekdayDates, holidayDates: currentHolidayDates, offDates: currentOffDates } }, (res) => {
+        socket.emit('updateSettings', { adminPassword, newSettings: { weekdayDates: currentWeekdayDates, holidayDates: currentHolidayDates, offDates: currentOffDates, customDates: currentCustomDates } }, (res) => {
             if (res.success) {
                 alert('【成功】設定を保存しました！カレンダーをご確認ください。');
                 showAlert('成功', '例外日程を保存しました。', 'success');

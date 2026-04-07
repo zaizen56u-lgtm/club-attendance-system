@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let allLogs = [];
     let calendar;
-    let systemSettings = { weekdayDates: [], holidayDates: [], offDates: [] };
+    let systemSettings = { weekdayDates: [], holidayDates: [], offDates: [], customDates: {} };
 
     function applyDynamicColors(settings) {
         // 色分けは廃止したため、カレンダーのスタイル操作は行わない
@@ -224,8 +224,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const isOffDate = systemSettings.offDates && systemSettings.offDates.includes(yyyyMmDd);
                 const isExplicitWeekday = systemSettings.weekdayDates && systemSettings.weekdayDates.includes(yyyyMmDd);
+                const customTimeObj = systemSettings.customDates && systemSettings.customDates[yyyyMmDd];
 
-                if (isHoliday || (dayOfWeek === 0 && !isExplicitWeekday)) { // 休日設定または日曜日（ただし強制平日がない場合）
+                if (isHoliday || (dayOfWeek === 0 && !isExplicitWeekday && !customTimeObj)) { // 休日設定または日曜日（ただし強制平日がない場合）
                     holidayDays++;
                     if (lastLeaveObj) {
                         holidayTimeMs += (lastLeaveObj.getTime() - firstAttendObj.getTime());
@@ -235,7 +236,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     const reqStart = new Date(currentDate);
                     const reqEnd = new Date(currentDate);
                     
-                    if (isExplicitWeekday || (dayOfWeek >= 1 && dayOfWeek <= 5)) { // 強制平日 または 月〜金
+                    if (customTimeObj) {
+                        const [startH, startM] = customTimeObj.start.split(':');
+                        const [endH, endM] = customTimeObj.end.split(':');
+                        reqStart.setHours(parseInt(startH, 10), parseInt(startM, 10), 0, 0);
+                        reqEnd.setHours(parseInt(endH, 10), parseInt(endM, 10), 0, 0);
+                    } else if (isExplicitWeekday || (dayOfWeek >= 1 && dayOfWeek <= 5)) { // 強制平日 または 月〜金
                         reqStart.setHours(16, 30, 0, 0);
                         reqEnd.setHours(18, 30, 0, 0);
                     } else if (dayOfWeek === 6) { // 土曜日は9:30-18:30を標準の活動時間とみなす
@@ -279,8 +285,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 const isOffDate = systemSettings.offDates && systemSettings.offDates.includes(yyyyMmDd);
                 const isExplicitWeekday = systemSettings.weekdayDates && systemSettings.weekdayDates.includes(yyyyMmDd);
+                const customTimeObj = systemSettings.customDates && systemSettings.customDates[yyyyMmDd];
                 
-                if (!isHoliday && (dayOfWeek !== 0 || isExplicitWeekday) && !isOffDate) { // 休日と日曜日・指定休養日以外は活動日
+                if (!isHoliday && (dayOfWeek !== 0 || isExplicitWeekday || customTimeObj) && !isOffDate) { // 休日と日曜日・指定休養日以外は活動日
                     if (record && record.excusedAbsent) {
                         absentDaysExcused++;
                     } else {
@@ -371,15 +378,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const isHoliday = systemSettings.holidayDates && systemSettings.holidayDates.includes(dateStr);
         const isOffDate = systemSettings.offDates && systemSettings.offDates.includes(dateStr);
         const isWeekdayDate = systemSettings.weekdayDates && systemSettings.weekdayDates.includes(dateStr);
-        const isSpecialDay = (isSaturday || isHoliday) && !isWeekdayDate;
+        const customTimeObj = systemSettings.customDates && systemSettings.customDates[dateStr];
+        const isSpecialDay = (isSaturday || isHoliday) && !isWeekdayDate && !customTimeObj;
         
-        const actualStart = new Date(`${dateStr}T${isSpecialDay ? '09:30:00' : '16:30:00'}`).getTime();
-        const actualEnd = new Date(`${dateStr}T18:30:00`).getTime();
+        let actualStart = new Date(`${dateStr}T${isSpecialDay ? '09:30:00' : '16:30:00'}`).getTime();
+        let actualEnd = new Date(`${dateStr}T18:30:00`).getTime();
+        if (customTimeObj) {
+            actualStart = new Date(`${dateStr}T${customTimeObj.start}:00`).getTime();
+            actualEnd = new Date(`${dateStr}T${customTimeObj.end}:00`).getTime();
+        }
 
         Object.values(memberStats).forEach(ms => {
             if (ms.attended) {
                 attendCount++;
-                if (!isSunday || isHoliday || isWeekdayDate) {
+                if (!isSunday || isHoliday || isWeekdayDate || customTimeObj) {
                     if (!isOffDate) {
                         if (ms.firstAttendTime > actualStart) {
                             if (ms.excusedLate) lateExcusedCount++;
@@ -390,7 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } else {
                 const isOffDay = isSunday || isHoliday || isOffDate;
-                if (!isOffDay && !isWeekdayDate) {
+                if (!isOffDay && !isWeekdayDate && !customTimeObj) {
                     if (ms.excusedAbsent || ms.finalStatus === '欠席') {
                         absentExcusedCount++;
                     } else if (ms.finalStatus === '未設定') {
@@ -411,6 +423,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isOffDate) {
             ruleText = "休み (部活なし)";
             ruleColor = "#10b981"; // Emerald
+        } else if (customTimeObj) {
+            ruleText = `時間指定 (${customTimeObj.start}〜${customTimeObj.end})`;
+            ruleColor = "#7E22CE"; // Purple
         } else if (isHoliday) {
             ruleText = "土曜扱い (9:30〜18:30)";
             ruleColor = "#d97706"; // amber
