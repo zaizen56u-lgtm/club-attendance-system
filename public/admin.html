@@ -122,6 +122,34 @@
                 </form>
             </section>
 
+            <section style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
+                <h2 style="margin-bottom: 10px;">過去の出欠状況の修正</h2>
+                <p style="color: #666; margin-bottom: 15px;">打刻忘れ等のため、指定した日の出欠記録を上書きします。その日の既存の打刻はすべて消去され、ここで指定した内容で作り直されます。</p>
+                <form id="override-past-form">
+                    <div class="form-group" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+                        <input type="date" id="past-target-date" style="flex: 1; min-width: 130px;" required>
+                        <select id="past-member-select" style="flex: 1; min-width: 130px; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem;" required>
+                            <option value="" disabled selected>名前を選択</option>
+                        </select>
+                        <select id="past-status-select" style="flex: 1; min-width: 130px; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem;" required>
+                            <option value="出席">出席 (定時参加)</option>
+                            <option value="欠席">欠席</option>
+                            <option value="遅刻">遅刻 (時間指定)</option>
+                            <option value="消去">記録を消去 (未設定へ)</option>
+                        </select>
+                    </div>
+                    <div id="past-late-time-container" style="display: none; margin-bottom: 15px;">
+                        <label for="past-late-time" style="font-weight: bold; color: #555;">遅刻した到着時刻:</label>
+                        <input type="time" id="past-late-time" value="17:00" style="padding: 8px; border: 1px solid #ccc; border-radius: 6px; margin-left: 10px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label for="past-override-password">専用パスワード</label>
+                        <input type="password" id="past-override-password" placeholder="パスワードを入力" required>
+                    </div>
+                    <button type="submit" class="submit-btn" style="background: #2563EB;">この日の記録を上書きする</button>
+                </form>
+            </section>
+
             <section style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea; background-color: #FEF2F2; padding: 20px; border-radius: 12px;">
                 <h2 style="color: #DC2626; margin-bottom: 10px;">⚠️ 危険な操作（データ初期化）</h2>
                 <p style="color: #7F1D1D; margin-bottom: 15px;">全メンバーの現在の出欠状況と、過去のすべての活動履歴（カレンダー）を完全に消去し、初期状態に戻します。この操作は取り消せません。</p>
@@ -137,6 +165,6 @@
         <br><a href="index.html" class="nav-link" style="color: #6B7280; margin-top: 15px; display: inline-block;">🏠 ログイン・起動画面へ戻る</a></div>
     </div>
     
-    <script src="admin.js?v=1.4"></script>
+    <script src="admin.js?v=1.5"></script>
 </body>
 </html>
