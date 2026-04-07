@@ -85,7 +85,7 @@ async function loadData() {
     const mongoUri = process.env.MONGODB_URI;
     if (mongoUri) {
         try {
-            await mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true });
+            await mongoose.connect(mongoUri);
             useMongoDB = true;
             console.log("✅ MongoDBに接続しました。クラウドデータをチェックします...");
             
@@ -153,8 +153,6 @@ function saveData() {
     }
 }
 
-// 起動時にデータを読み込む
-loadData();
 // ========================================
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -454,6 +452,11 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`サーバーがポート ${PORT} で起動しました: http://localhost:${PORT}`);
+// データの読み込みが完全に終わってからサーバーを起動する（データ消失バグの防止）
+loadData().then(() => {
+    server.listen(PORT, () => {
+        console.log(`サーバーがポート ${PORT} で起動しました: http://localhost:${PORT}`);
+    });
+}).catch((e) => {
+    console.error("起動エラー:", e);
 });

@@ -14,38 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let systemSettings = { weekdayDates: [], holidayDates: [], offDates: [] };
 
     function applyDynamicColors(settings) {
-        let styleEl = document.getElementById('dynamic-calendar-style');
-        if(!styleEl) {
-            styleEl = document.createElement('style');
-            styleEl.id = 'dynamic-calendar-style';
-            document.head.appendChild(styleEl);
-        }
-        let css = '';
-        if (settings.weekdayDates) {
-            settings.weekdayDates.forEach(dateStr => {
-                css += `
-                .fc-day[data-date="${dateStr}"] { background-color: rgba(37, 99, 235, 0.1) !important; }
-                .fc-day[data-date="${dateStr}"] .fc-col-header-cell-cushion, 
-                .fc-day[data-date="${dateStr}"] .fc-daygrid-day-number { color: #2563EB !important; }`;
-            });
-        }
-        if (settings.holidayDates) {
-            settings.holidayDates.forEach(dateStr => {
-                css += `
-                .fc-day[data-date="${dateStr}"] { background-color: rgba(245, 158, 11, 0.1) !important; }
-                .fc-day[data-date="${dateStr}"] .fc-col-header-cell-cushion, 
-                .fc-day[data-date="${dateStr}"] .fc-daygrid-day-number { color: #d97706 !important; }`;
-            });
-        }
-        if (settings.offDates) {
-            settings.offDates.forEach(dateStr => {
-                css += `
-                .fc-day[data-date="${dateStr}"] { background-color: rgba(16, 185, 129, 0.1) !important; }
-                .fc-day[data-date="${dateStr}"] .fc-col-header-cell-cushion, 
-                .fc-day[data-date="${dateStr}"] .fc-daygrid-day-number { color: #059669 !important; }`;
-            });
-        }
-        styleEl.innerHTML = css;
+        // 色分けは廃止したため、カレンダーのスタイル操作は行わない
     }
 
     // FullCalendarの初期化
