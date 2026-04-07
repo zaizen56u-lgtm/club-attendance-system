@@ -104,7 +104,13 @@
                         <option value="weekday">平日扱い (16:30〜)</option>
                         <option value="holiday">土曜扱い (9:30〜)</option>
                         <option value="off">休み (部活なし)</option>
+                        <option value="custom">時間を指定...</option>
                     </select>
+                    <div id="custom-time-inputs" style="display: none; align-items: center; gap: 5px;">
+                        <input type="time" id="override-start-time" value="13:00" style="padding: 8px; border: 1px solid #ccc; border-radius: 6px;">
+                        <span style="font-weight: bold; color: #555;">〜</span>
+                        <input type="time" id="override-end-time" value="17:00" style="padding: 8px; border: 1px solid #ccc; border-radius: 6px;">
+                    </div>
                     <button type="button" id="add-override-btn" class="btn primary" style="padding: 8px 15px; border-radius: 6px; background: #4F46E5; color: white; border: none;">追加</button>
                 </div>
                 <ul id="override-dates-list" style="list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
