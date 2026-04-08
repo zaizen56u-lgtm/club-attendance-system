@@ -5,6 +5,15 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
+// === エラーでシステムが落ちないようにする対策 ===
+process.on('uncaughtException', (err) => {
+    console.error("予期せぬエラー (uncaughtException) が発生しましたが、システムを継続します:", err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.error("未処理のPromise拒否 (unhandledRejection) が発生しましたが、システムを継続します:", reason);
+});
+// ===============================================
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
@@ -126,37 +135,50 @@ function applyData(parsed) {
     if (parsed.emergencyState) emergencyState = parsed.emergencyState;
 }
 
+let pendingSave = false;
+let saveTimeout = null;
+
 function saveData() {
-    const data = {
-        members,
-        nextMemberId,
-        historyLogs,
-        schedules,
-        nextScheduleId,
-        systemSettings,
-        emergencyState
-    };
-    
-    if (useMongoDB) {
-        // MongoDBへ非同期で書き込み
-        StateModel.updateOne(
-            { key: 'appState' }, 
-            { $set: { data: data } }, 
-            { upsert: true }
-        ).catch(e => console.error("❌ MongoDBへの保存に失敗しました:", e));
-    } else {
-        // ローカルファイルへ書き込み
-        try {
-            fs.writeFileSync(dbFile, JSON.stringify(data, null, 2), 'utf8');
-        } catch (e) {
-            console.error("❌ ローカルデータの保存に失敗しました:", e);
+    // 既に保存予約が入っている場合はスキップ（1秒に1回だけ保存するデバウンス処理）
+    if (pendingSave) return;
+    pendingSave = true;
+
+    // 非同期で少し遅らせて保存することで、複数人の同時アクセス時（高負荷時）の連続書き込みを防ぐ
+    saveTimeout = setTimeout(() => {
+        pendingSave = false;
+        const data = {
+            members,
+            nextMemberId,
+            historyLogs,
+            schedules,
+            nextScheduleId,
+            systemSettings,
+            emergencyState
+        };
+        
+        if (useMongoDB) {
+            // MongoDBへ非同期で書き込み
+            StateModel.updateOne(
+                { key: 'appState' }, 
+                { $set: { data: data } }, 
+                { upsert: true }
+            ).catch(e => console.error("❌ MongoDBへの保存に失敗しました:", e));
+        } else {
+            // ローカルファイルへ【非同期】で書き込み。writeFileSyncによるフリーズを防ぐ。
+            // また、ログが肥大化してもメインプロセス（通信などの応答）を妨げません。
+            fs.writeFile(dbFile, JSON.stringify(data, null, 2), 'utf8', (err) => {
+                if (err) console.error("❌ ローカルデータの保存に失敗しました:", err);
+            });
         }
-    }
+    }, 1000); // 連続する更新は1秒後に1回だけ書き出す
 }
 
 // ========================================
 
-app.use(express.static(path.join(__dirname, 'public')));
+// ========================================
+
+// 静的ファイルの提供（ブラウザ側に1時間のキャッシュを許可し、一斉アクセス時の通信データ量を激減させる）
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: 3600000 }));
 app.use(express.json());
 
 // API: メンバー一覧の取得
@@ -166,12 +188,23 @@ app.get('/api/members', (req, res) => {
   res.json(publicMembers);
 });
 
+// 通信連打（スパム）防止用の状態管理
+const clientLastUpdate = {};
+
 // Socket.ioの通信処理
 io.on('connection', (socket) => {
   console.log('クライアントが接続しました。');
 
   // クライアントからのステータス更新要求を受信
   socket.on('updateStatus', (data, callback) => {
+    // 【連打・過負荷防止】同一クライアントから1秒以内の連続送信はブロックする
+    const nowTime = Date.now();
+    if (clientLastUpdate[socket.id] && nowTime - clientLastUpdate[socket.id] < 1000) {
+        if(callback) callback({ success: false, message: "通信が連続しています。少し待ってから再度お試しください。" });
+        return;
+    }
+    clientLastUpdate[socket.id] = nowTime;
+
     const { id, password, newStatus, newLocation, reason } = data;
     
     // メンバーの検索とパスワード検証
@@ -519,6 +552,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
+    delete clientLastUpdate[socket.id]; // メモリ解放（長時間起動時の重さ対策）
     console.log('クライアントが切断されました。');
   });
 });
