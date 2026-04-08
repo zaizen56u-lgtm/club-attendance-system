@@ -290,6 +290,71 @@ io.on('connection', (socket) => {
     saveData();
   });
 
+  // 管理者向け: 過去の出欠状況の強制上書き
+  socket.on('overridePastAttendance', (data, callback) => {
+    const { password, memberId, targetDate, newStatus, customTimeStr } = data;
+    if (password !== "Yamamoto5106(!1!)") {
+      if(callback) callback({ success: false, message: "専用パスワードが違います" });
+      return;
+    }
+
+    const member = members.find(m => m.id === parseInt(memberId, 10));
+    if (!member) {
+      if(callback) callback({ success: false, message: "メンバーが見つかりません" });
+      return;
+    }
+
+    // 1. 指定された日付の当該メンバーのログをすべて削除
+    historyLogs = historyLogs.filter(log => {
+      // ログのtimestampはISO文字列。日本時間での日付文字列を生成する
+      const logDateObj = new Date(log.timestamp);
+      const jstDate = new Date(logDateObj.getTime() + 9 * 60 * 60 * 1000);
+      const logDateStr = `${jstDate.getUTCFullYear()}-${String(jstDate.getUTCMonth()+1).padStart(2,'0')}-${String(jstDate.getUTCDate()).padStart(2,'0')}`;
+      return !(log.memberId === member.id && logDateStr === targetDate);
+    });
+
+    // 2. 新しいステータスに応じて架空のログを追加
+    const dateObj = new Date(targetDate);
+    const dayOfWeek = dateObj.getDay();
+    const isHoliday = systemSettings.holidayDates && systemSettings.holidayDates.includes(targetDate);
+    const isWeekdayDate = systemSettings.weekdayDates && systemSettings.weekdayDates.includes(targetDate);
+    const customTimeObj = systemSettings.customDates && systemSettings.customDates[targetDate];
+    
+    let defaultStart = "16:30:00";
+    let defaultEnd = "18:30:00";
+    if (customTimeObj) {
+        defaultStart = customTimeObj.start + ":00";
+        defaultEnd = customTimeObj.end + ":00";
+    } else if (isHoliday || (dayOfWeek === 6 && !isWeekdayDate) || (dayOfWeek === 0 && !isWeekdayDate)) {
+        defaultStart = "09:30:00";
+    }
+
+    const tStartISO = new Date(`${targetDate}T${defaultStart}+09:00`).toISOString();
+    const tEndISO = new Date(`${targetDate}T${defaultEnd}+09:00`).toISOString();
+
+    if (newStatus === "出席") {
+        historyLogs.push({ memberId: member.id, name: member.name, status: "出席", location: "-", reason: "管理者修正", timestamp: tStartISO });
+        historyLogs.push({ memberId: member.id, name: member.name, status: "退席", location: "-", reason: "管理者修正", timestamp: tEndISO });
+    } else if (newStatus === "欠席") {
+        historyLogs.push({ memberId: member.id, name: member.name, status: "欠席", location: "-", reason: "管理者修正", timestamp: tStartISO });
+    } else if (newStatus === "遅刻") {
+        const lateTimeStr = customTimeStr ? customTimeStr + ":00" : "17:00:00";
+        const tLateISO = new Date(`${targetDate}T${lateTimeStr}+09:00`).toISOString();
+        historyLogs.push({ memberId: member.id, name: member.name, status: "遅刻", location: "-", reason: "管理者修正", timestamp: tLateISO });
+        historyLogs.push({ memberId: member.id, name: member.name, status: "退席", location: "-", reason: "管理者修正", timestamp: tEndISO });
+    } else if (newStatus === "消去") {
+        // 何もしない（削除のみ）
+    }
+
+    // 履歴を時間順にソートするよう整える
+    historyLogs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+    if(callback) callback({ success: true, logs: historyLogs });
+    io.emit('historyUpdated', historyLogs);
+    saveData();
+  });
+
+
   // 管理者向け: 全データの初期化
   socket.on('clearAllHistory', (data, callback) => {
     const { adminPassword } = data;

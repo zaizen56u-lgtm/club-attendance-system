@@ -15,6 +15,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const bulkContainer = document.getElementById('bulk-members-container');
     const bulkForm = document.getElementById('bulk-update-form');
     const settingsForm = document.getElementById('settings-form');
+    
+    // 過去の出欠状況修正用
+    const pastMemberSelect = document.getElementById('past-member-select');
+    const overridePastForm = document.getElementById('override-past-form');
+    const pastTargetDate = document.getElementById('past-target-date');
+    const pastStatusSelect = document.getElementById('past-status-select');
+    const pastLateTimeContainer = document.getElementById('past-late-time-container');
+    const pastLateTime = document.getElementById('past-late-time');
+    const pastOverridePassword = document.getElementById('past-override-password');
 
     // === 緊急事態機能の初期化 ===
     const triggerBtn = document.getElementById('btn-trigger-emergency');
@@ -72,9 +81,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 削除用リストの読み込み
+    // 削除用・修正用リストの読み込み
     function loadMembers() {
         removeSelect.innerHTML = '<option value="" disabled selected>名前を選択してください</option>';
+        pastMemberSelect.innerHTML = '<option value="" disabled selected>名前を選択</option>';
         fetch('/api/members')
             .then(res => res.json())
             .then(members => {
@@ -84,6 +94,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     opt.value = m.id;
                     opt.textContent = m.name;
                     removeSelect.appendChild(opt);
+
+                    const opt2 = document.createElement('option');
+                    opt2.value = m.id;
+                    opt2.textContent = m.name;
+                    pastMemberSelect.appendChild(opt2);
 
                     // 一括変更用の行生成
                     const row = document.createElement('div');
@@ -365,6 +380,52 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // 過去の出欠状況の上書き処理
+    if (pastStatusSelect) {
+        pastStatusSelect.addEventListener('change', () => {
+            if (pastStatusSelect.value === '遅刻') {
+                pastLateTimeContainer.style.display = 'block';
+            } else {
+                pastLateTimeContainer.style.display = 'none';
+            }
+        });
+    }
+
+    if (overridePastForm) {
+        overridePastForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const date = pastTargetDate.value;
+            const memberId = pastMemberSelect.value;
+            const status = pastStatusSelect.value;
+            const timeStr = pastLateTime.value;
+            const password = pastOverridePassword.value;
+
+            if (!memberId) {
+                showAlert('エラー', '対象のメンバーを選択してください', 'error');
+                return;
+            }
+
+            if (!confirm(`${date} の記録を「${status}」で完全に上書きしますか？\n（この操作は取り消せません）`)) {
+                return;
+            }
+
+            socket.emit('overridePastAttendance', {
+                password,
+                memberId,
+                targetDate: date,
+                newStatus: status,
+                customTimeStr: timeStr
+            }, (res) => {
+                if (res.success) {
+                    showAlert('成功', '過去の出欠状況を上書きしました！カレンダーをご確認ください。', 'success');
+                    pastOverridePassword.value = '';
+                } else {
+                    showAlert('エラー', res.message, 'error');
+                }
+            });
+        });
+    }
 
     // 履歴・状況の全消去処理
     const clearHistoryBtn = document.getElementById('clear-history-btn');
