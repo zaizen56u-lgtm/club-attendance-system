@@ -175,7 +175,94 @@ function saveData() {
 
 // ========================================
 
-// ========================================
+// === 自動運転（Wake-on-Demand）ミドルウェア ===
+let overrideAwakeUntil = 0;
+const AWAKE_DURATION_MS = 60 * 60 * 1000; // 60分間
+
+app.use((req, res, next) => {
+    // 無限リロード防止のため API・Socket 通信等は通過させる
+    if (req.method !== 'GET' || req.path.startsWith('/socket.io') || req.path.startsWith('/api')) {
+        return next();
+    }
+
+    // JSTで現在時刻を取得
+    const jstStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Tokyo' });
+    const jstNow = new Date(jstStr);
+    const todayStr = `${jstNow.getFullYear()}-${String(jstNow.getMonth() + 1).padStart(2, '0')}-${String(jstNow.getDate()).padStart(2, '0')}`;
+    const dayOfWeek = jstNow.getDay();
+    const currentTimeVal = jstNow.getHours() * 100 + jstNow.getMinutes();
+
+    let startStr = "";
+    let endStr = "";
+    let isOff = false;
+
+    if (systemSettings.offDates && systemSettings.offDates.includes(todayStr)) {
+        isOff = true;
+    } else if (systemSettings.customDates && systemSettings.customDates[todayStr]) {
+        startStr = systemSettings.customDates[todayStr].start;
+        endStr = systemSettings.customDates[todayStr].end;
+    } else if (systemSettings.weekdayDates && systemSettings.weekdayDates.includes(todayStr)) {
+        startStr = "16:30";
+        endStr = "18:30";
+    } else if (systemSettings.holidayDates && systemSettings.holidayDates.includes(todayStr)) {
+        startStr = "09:30";
+        endStr = "18:30";
+    } else {
+        if (dayOfWeek === 0) isOff = true;
+        else if (dayOfWeek === 6) { startStr = "09:30"; endStr = "18:30"; }
+        else { startStr = "16:30"; endStr = "18:30"; }
+    }
+
+    let isScheduledTime = false;
+    if (!isOff && startStr && endStr) {
+        const startVal = parseInt(startStr.replace(':', ''), 10);
+        const endVal = parseInt(endStr.replace(':', ''), 10);
+        let bufferHH = Math.floor(endVal / 100);
+        let bufferMM = (endVal % 100) + 15;
+        if(bufferMM >= 60) { bufferHH += 1; bufferMM -= 60; }
+        const endBufferVal = bufferHH * 100 + bufferMM;
+
+        if (currentTimeVal >= startVal && currentTimeVal <= endBufferVal) {
+            isScheduledTime = true;
+        }
+    }
+
+    // スケジュール内の場合
+    if (isScheduledTime) {
+        overrideAwakeUntil = 0;
+        return next();
+    }
+
+    // スケジュール外だが、臨時起動の有効期限内の場合
+    if (Date.now() < overrideAwakeUntil) {
+        return next();
+    }
+
+    // スケジュール外 ＆ アクセス検知（臨時起動のトリガー）
+    overrideAwakeUntil = Date.now() + AWAKE_DURATION_MS;
+    res.send(`
+        <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <meta http-equiv="refresh" content="3">
+                <title>システム起動中</title>
+                <style>
+                    body { font-family: sans-serif; text-align: center; padding: 50px 20px; background-color: #f7f9fc; color: #333; }
+                    h2 { color: #4a90e2; }
+                    .spinner { margin: 20px auto; width: 40px; height: 40px; border: 4px solid rgba(0,0,0,0.1); border-left-color: #4a90e2; border-radius: 50%; animation: spin 1s linear infinite; }
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                </style>
+            </head>
+            <body>
+                <h2>出欠システムを起動しています...</h2>
+                <div class="spinner"></div>
+                <p>時間外のアクセスを検知しました。システムを準備しています。<br>このまま数秒間お待ちください。</p>
+            </body>
+        </html>
+    `);
+});
+// ===============================================
 
 // 静的ファイルの提供（ブラウザ側に1時間のキャッシュを許可し、一斉アクセス時の通信データ量を激減させる）
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: 3600000 }));
