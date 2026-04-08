@@ -91,8 +91,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // ユーザー名でフィルタリング
+        // ユーザー名でフィルタリングし、確実に時系列順にソートする
         const filtered = allLogs.filter(log => log.name === selectedUser);
+        filtered.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
         // 日付・ユーザーごとに最初の「出席」と最後の「退席」を抽出
         const dailyRecords = {};
@@ -125,11 +126,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     dailyRecords[key].firstAttendTime = timeStr;
                     dailyRecords[key].firstAttendRaw = rawTime;
                 }
+                // 再出席した場合は直前の退席は無効（まだ帰っていない状態）
+                dailyRecords[key].lastLeaveTime = null;
+                dailyRecords[key].lastLeaveRaw = null;
             } else if (log.status === '退席' || log.status === '早退') {
-                if (!dailyRecords[key].lastLeaveRaw || rawTime > dailyRecords[key].lastLeaveRaw) {
-                    dailyRecords[key].lastLeaveTime = timeStr;
-                    dailyRecords[key].lastLeaveRaw = rawTime;
-                }
+                // 退席は常に上書き（時系列ソート済みのため最も遅いものが残る）
+                dailyRecords[key].lastLeaveTime = timeStr;
+                dailyRecords[key].lastLeaveRaw = rawTime;
             }
             if (log.status === '遅刻') {
                 dailyRecords[key].excusedLate = true;
@@ -346,6 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         });
 
+        dayLogs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
         dayLogs.forEach(log => {
             if (!memberStats[log.name]) return;
             const ms = memberStats[log.name];
@@ -356,8 +360,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (log.status === '出席' || log.status === '遅刻') {
                 ms.attended = true;
                 if (!ms.firstAttendTime || logTime < ms.firstAttendTime) ms.firstAttendTime = logTime;
+                ms.lastLeaveTime = null; // 再出席時はリセット
             } else if (log.status === '退席' || log.status === '早退') {
-                if (!ms.lastLeaveTime || logTime > ms.lastLeaveTime) ms.lastLeaveTime = logTime;
+                ms.lastLeaveTime = logTime;
             }
             if (log.status === '遅刻') ms.excusedLate = true;
             if (log.status === '欠席') ms.excusedAbsent = true;

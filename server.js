@@ -196,10 +196,16 @@ io.on('connection', (socket) => {
     const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     member.lastUpdate = timeStr;
 
-    if (newStatus === '出席') {
+    if (newStatus === '出席' || newStatus === '遅刻') {
+        // 出席・遅刻として再打刻した場合は「いる」状態に戻るので、退席時間をリセットする
         member.attendTime = timeStr;
-    } else if (newStatus === '退席') {
+        member.leaveTime = "-";
+    } else if (newStatus === '退席' || newStatus === '早退') {
         member.leaveTime = timeStr;
+    } else if (newStatus === '欠席' || newStatus === '未設定') {
+        // 欠席等の場合はボード上の時間を両方リセットする
+        member.attendTime = "-";
+        member.leaveTime = "-";
     }
 
     // 履歴に追加
