@@ -284,15 +284,20 @@ io.on('connection', (socket) => {
 
   // クライアントからのステータス更新要求を受信
   socket.on('updateStatus', (data, callback) => {
-    // 【連打・過負荷防止】同一クライアントから1秒以内の連続送信はブロックする
-    const nowTime = Date.now();
-    if (clientLastUpdate[socket.id] && nowTime - clientLastUpdate[socket.id] < 1000) {
-        if(callback) callback({ success: false, message: "通信が連続しています。少し待ってから再度お試しください。" });
-        return;
-    }
-    clientLastUpdate[socket.id] = nowTime;
-
     const { id, password, newStatus, newLocation, reason } = data;
+
+    // 管理パスワードでの変更は一括更新処理を行うため、スパムブロックの対象外とする
+    const isAdmin = (password === MASTER_PASSWORD || password === ADMIN_PASSWORD);
+
+    // 【連打・過負荷防止】同一クライアントから1秒以内の連続送信はブロック（一般ユーザーのみ）
+    if (!isAdmin) {
+        const nowTime = Date.now();
+        if (clientLastUpdate[socket.id] && nowTime - clientLastUpdate[socket.id] < 1000) {
+            if(callback) callback({ success: false, message: "通信が連続しています。少し待ってから再度お試しください。" });
+            return;
+        }
+        clientLastUpdate[socket.id] = nowTime;
+    }
     
     // メンバーの検索とパスワード検証
     const member = members.find(m => m.id === parseInt(id, 10));
