@@ -27,6 +27,23 @@
     </script>
 </head>
 <body class="admin-page" style="display: flex; justify-content: center; padding: 40px 20px;">
+    <!-- グローバルナビゲーション -->
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-hamburger">
+        <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+    </label>
+    <div class="nav-overlay" onclick="document.getElementById('nav-toggle').checked = false;"></div>
+    <nav class="nav-sidebar">
+        <div class="nav-header">メニュー</div>
+        <ul class="nav-links">
+            <li><a href="input.html">📝 出欠登録</a></li>
+            <li><a href="board.html">👀 状況一覧</a></li>
+            <li><a href="history.html">📅 履歴・統計</a></li>
+            <li><a href="schedule.html">🗓️ スケジュール</a></li>
+            <li><a href="admin.html">⚙️ 管理者設定</a></li>
+            <li><a href="index.html">🏠 ロック画面へ戻る</a></li>
+        </ul>
+    </nav>
     <div class="container fade-in" style="width: 100%; max-width: 600px;">
         <header>
             <h1>管理者設定</h1>
@@ -65,7 +82,6 @@
                 <form id="add-member-form">
                     <div class="form-group">
                         <input type="text" id="new-member-name" placeholder="部員の名前" style="margin-bottom: 10px;" required>
-                        <input type="text" id="new-member-password" placeholder="初期パスワード（4桁数字など）" required>
                         <button type="submit" class="submit-btn" style="margin-top: 15px;">追加する</button>
                     </div>
                 </form>
@@ -157,12 +173,7 @@
             </section>
         </div>
 
-        <div class="links">
-            <a href="schedule.html" class="nav-link" style="font-weight: bold; color: #3B82F6;">スケジュール画面を開く</a><br><br>
-            <a href="history.html" class="nav-link" style="font-weight: bold; color: var(--primary);">出欠履歴・ログを確認する</a><br><br>
-            <a href="input.html" class="nav-link">&larr; 入力画面に戻る</a><br><br>
-            <a href="board.html" class="nav-link" style="color: var(--text-muted);">状況一覧画面を開く</a>
-        <br><a href="index.html" class="nav-link" style="color: #6B7280; margin-top: 15px; display: inline-block;">🏠 ログイン・起動画面へ戻る</a></div>
+        </div>
     </div>
     
     <script src="admin.js?v=1.6"></script>
