@@ -1,4 +1,4 @@
-const CACHE_NAME = 'attendance-app-v2';
+const CACHE_NAME = 'attendance-app-v3';
 const URLS_TO_CACHE = [
   '/',
   '/index.html',
@@ -18,6 +18,7 @@ const URLS_TO_CACHE = [
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting(); // 新しいバージョンを即座にアクティベート
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(URLS_TO_CACHE))
@@ -34,7 +35,7 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim()) // 古いキャッシュを即座に破棄して新しいものに切り替え
   );
 });
 
