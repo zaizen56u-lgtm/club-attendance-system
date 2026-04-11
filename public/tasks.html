@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タスク管理 - 部活出欠管理システム</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="emergency.js?v=1.0"></script>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="タスク管理">
+    <link rel="apple-touch-icon" href="/icon.svg">
+    <style>
+        .task-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .task-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .task-badge {
+            background: #fde68a;
+            color: #b45309;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .task-badge.completed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        #login-section, #task-section {
+            display: block;
+        }
+    </style>
+</head>
+<body class="input-page">
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-hamburger">
+        <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+    </label>
+    <div class="nav-overlay" onclick="document.getElementById('nav-toggle').checked = false;"></div>
+    <nav class="nav-sidebar">
+        <div class="nav-header">一般メニュー</div>
+        <ul class="nav-links">
+            <li><a href="input.html">📝 出欠登録</a></li>
+            <li><a href="board.html">👀 状況一覧</a></li>
+            <li><a href="schedule.html">🗓️ スケジュール</a></li>
+            <li><a href="future.html">🔮 事前連絡一覧</a></li>
+            <li><a href="tasks.html">📋 タスク管理</a></li>
+            <li><a href="index.html">🏠 ホーム画面</a></li>
+        </ul>
+    </nav>
+    <div class="container fade-in">
+        <header style="text-align: center; margin-bottom: 30px;">
+            <h1>タスク管理</h1>
+        </header>
+
+        <!-- 認証セクション -->
+        <div id="login-section" class="card">
+            <h2 style="font-size: 1.2rem; color: #374151; margin-bottom: 20px; text-align: center;">ユーザー認証</h2>
+            <div class="form-group">
+                <label for="member-select">システムを利用する名前を選択してください</label>
+                <select id="member-select" class="form-control" style="font-size: 1.1rem; padding: 12px; margin-bottom: 20px;">
+                    <option value="">-- 名前を選択 --</option>
+                </select>
+                <div class="input-password-wrapper" style="position: relative; margin-bottom: 20px;">
+                    <input type="password" id="password-input" class="form-control" placeholder="パスワードを入力" style="font-size: 1.1rem; padding: 12px; font-family: monospace;">
+                </div>
+            </div>
+            <button id="login-btn" class="submit-btn" style="width: 100%; margin-top: 10px;">ログイン</button>
+            <p id="login-error" style="color: #dc2626; margin-top: 15px; font-weight: bold; text-align: center; display: none;">パスワードが間違っています。</p>
+        </div>
+
+        <!-- タスク管理セクション -->
+        <div id="task-section" style="display: none;">
+            <!-- リーダーのみ表示されるセクション -->
+            <div id="leader-tools" class="card" style="margin-bottom: 30px; display: none;">
+                <h2 style="font-size: 1.2rem; color: #4F46E5; margin-bottom: 15px; border-bottom: 2px solid #E0E7FF; padding-bottom: 10px;">👑 リーダー専用: タスク振り分け</h2>
+                <div class="form-group">
+                    <label>対象メンバーを選択</label>
+                    <select id="assignee-select" class="form-control" style="margin-bottom: 15px;">
+                        <option value="">-- メンバーを選択 --</option>
+                    </select>
+                    
+                    <label>タスクのタイトル</label>
+                    <input type="text" id="task-title" class="form-control" placeholder="例: グラウンド整備" style="margin-bottom: 15px;">
+                    
+                    <label>詳細 (任意)</label>
+                    <textarea id="task-desc" class="form-control" rows="2" placeholder="内容の詳細などを記載できます" style="margin-bottom: 15px;"></textarea>
+                    
+                    <button id="add-task-btn" class="submit-btn" style="background: #4F46E5;">タスクを作成・送信</button>
+                </div>
+            </div>
+
+            <!-- 一般メンバー・リーダー共有セクション -->
+            <div class="card">
+                <h2 style="font-size: 1.2rem; color: #374151; margin-bottom: 15px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;"><span id="dashboard-name"></span>のタスク一覧</h2>
+                <div id="task-list-container">
+                    <!-- タスクがここに表示される -->
+                    <div style="text-align:center; color:#6b7280; padding:20px;">読み込み中...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="tasks.js?v=1.1"></script>
+</body>
+</html>
