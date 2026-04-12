@@ -58,6 +58,14 @@
         </header>
 
         <div class="card" id="board-container">
+            <div class="team-tabs" id="category-tabs" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                <button class="tab-btn active" data-target="ALL" style="flex:1; min-width:80px; text-align:center; padding:10px; background:#4F46E5; color:white; border-radius:8px; font-weight:bold; border:none; cursor:pointer;">すべて</button>
+                <button class="tab-btn" data-target="TEAM_A" style="flex:1; min-width:80px; text-align:center; padding:10px; background:#E5E7EB; color:#374151; border-radius:8px; font-weight:bold; border:none; cursor:pointer;">Aチーム</button>
+                <button class="tab-btn" data-target="TEAM_B" style="flex:1; min-width:80px; text-align:center; padding:10px; background:#E5E7EB; color:#374151; border-radius:8px; font-weight:bold; border:none; cursor:pointer;">Bチーム</button>
+                <button class="tab-btn" data-target="OVERALL" style="flex:1; min-width:80px; text-align:center; padding:10px; background:#E5E7EB; color:#374151; border-radius:8px; font-weight:bold; border:none; cursor:pointer;">部全体</button>
+                <button class="tab-btn" data-target="MANAGER" style="flex:1; min-width:80px; text-align:center; padding:10px; background:#E5E7EB; color:#374151; border-radius:8px; font-weight:bold; border:none; cursor:pointer;">マネージャー</button>
+            </div>
+            
             <div id="task-list-loading" style="text-align:center; color:#6b7280; padding: 30px;">データを読み込み中...</div>
             <div id="task-list-empty" style="text-align:center; color:#6b7280; padding: 30px; display: none;">現在表示できるタスクはありません。</div>
             

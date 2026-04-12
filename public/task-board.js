@@ -17,6 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const gridTeamB = document.getElementById('grid-team-b');
     const gridOverall = document.getElementById('grid-overall');
     const gridManager = document.getElementById('grid-manager');
+    const categoryTabs = document.querySelectorAll('.tab-btn');
+    
+    let currentCategoryView = 'ALL';
+    let membersList = [];
+    let allTasks = [];
 
     // 時計の更新
     function updateClock() {
@@ -26,9 +31,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     setInterval(updateClock, 1000);
     updateClock();
-
-    let membersList = [];
-    let allTasks = [];
 
     // メンバーリストの初回取得
     fetch('/api/members')
@@ -46,7 +48,28 @@ document.addEventListener('DOMContentLoaded', () => {
             if (res.success) {
                 allTasks = res.tasks;
                 renderBoard();
+            } else {
+                if(loadingMsg) loadingMsg.textContent = 'タスクの取得に失敗しました';
             }
+        });
+    }
+
+    // Tabs functionality
+    if (categoryTabs) {
+        categoryTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                categoryTabs.forEach(t => {
+                    t.classList.remove('active');
+                    t.style.background = '#E5E7EB';
+                    t.style.color = '#374151';
+                });
+                tab.classList.add('active');
+                tab.style.background = '#4F46E5';
+                tab.style.color = 'white';
+                
+                currentCategoryView = tab.getAttribute('data-target');
+                renderBoard();
+            });
         });
     }
 
@@ -122,9 +145,36 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
+        // Ensure visibility defaults to block if tasks exist
+        if (gridTeamA && gridTeamA.children.length > 0 && boardTeamA) boardTeamA.style.display = 'block';
+        if (gridTeamB && gridTeamB.children.length > 0 && boardTeamB) boardTeamB.style.display = 'block';
+        if (gridOverall && gridOverall.children.length > 0 && boardOverall) boardOverall.style.display = 'block';
+        if (gridManager && gridManager.children.length > 0 && boardManager) boardManager.style.display = 'block';
+        
+        // Hide if empty
         if (gridTeamA && gridTeamA.children.length === 0 && boardTeamA) boardTeamA.style.display = 'none';
         if (gridTeamB && gridTeamB.children.length === 0 && boardTeamB) boardTeamB.style.display = 'none';
         if (gridOverall && gridOverall.children.length === 0 && boardOverall) boardOverall.style.display = 'none';
         if (gridManager && gridManager.children.length === 0 && boardManager) boardManager.style.display = 'none';
+        
+        // Apply tab filters
+        if (currentCategoryView !== 'ALL') {
+            if (boardTeamA) boardTeamA.style.display = (currentCategoryView === 'TEAM_A' && gridTeamA.children.length > 0) ? 'block' : 'none';
+            if (boardTeamB) boardTeamB.style.display = (currentCategoryView === 'TEAM_B' && gridTeamB.children.length > 0) ? 'block' : 'none';
+            if (boardOverall) boardOverall.style.display = (currentCategoryView === 'OVERALL' && gridOverall.children.length > 0) ? 'block' : 'none';
+            if (boardManager) boardManager.style.display = (currentCategoryView === 'MANAGER' && gridManager.children.length > 0) ? 'block' : 'none';
+            
+            // Check if entirely empty for the selected tab
+            const visibleCount = Array.from(document.querySelectorAll('.members-grid.category-grid')).reduce((sum, el) => {
+                return sum + ((el.parentElement.style.display !== 'none') ? el.children.length : 0);
+            }, 0);
+            
+            if (visibleCount === 0) {
+                emptyMsg.style.display = 'block';
+                emptyMsg.textContent = '現在表示できるタスクはありません。';
+            } else {
+                emptyMsg.style.display = 'none';
+            }
+        }
     }
 });
