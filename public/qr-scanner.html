@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QRスキャナー - 部活出欠管理システム</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="emergency.js?v=1.0"></script>
+    <!-- HTML5 QR Code Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+        .scanner-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        #reader {
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #scan-result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            display: none;
+        }
+        .success {
+            background-color: #D1FAE5;
+            color: #065F46;
+            border: 1px solid #34D399;
+        }
+        .error {
+            background-color: #FEE2E2;
+            color: #991B1B;
+            border: 1px solid #F87171;
+        }
+    </style>
+</head>
+<body class="input-page">
+    <!-- グローバルナビゲーション -->
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-hamburger">
+        <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+    </label>
+    <div class="nav-overlay" onclick="document.getElementById('nav-toggle').checked = false;"></div>
+    <nav class="nav-sidebar">
+        <div class="nav-header">一般メニュー</div>
+        <ul class="nav-links">
+            <li><a href="qr-scanner.html">QRスキャナー</a></li>
+            <li><a href="input.html">出欠登録</a></li>
+            <li><a href="board.html">状況一覧</a></li>
+            <li><a href="schedule.html">スケジュール</a></li>
+            <li><a href="tasks.html">タスク</a></li>
+            <li><a href="index.html">ホーム画面</a></li>
+        </ul>
+    </nav>
+
+    <div class="container fade-in">
+        <header>
+            <h1>QRスキャナー</h1>
+            <p>部員証のQRコードをカメラにかざしてください。</p>
+        </header>
+
+        <div class="scanner-container">
+            <div id="reader"></div>
+            <div id="scan-result"></div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="index.html" style="color: white; text-decoration: none; background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.4);">ホームに戻る</a>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let isScanning = false;
+        
+        function showResult(message, isSuccess) {
+            const resultDiv = document.getElementById('scan-result');
+            resultDiv.textContent = message;
+            resultDiv.className = isSuccess ? 'success' : 'error';
+            resultDiv.style.display = 'block';
+            
+            // 少ししたら消す
+            setTimeout(() => {
+                resultDiv.style.display = 'none';
+                isScanning = false; // スキャン再開
+            }, 3000);
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            if (isScanning) return; // 処理中は連続スキャンしない
+            
+            // decodedText は "user_id:12" のような形式を想定
+            if (decodedText.startsWith("user_id:")) {
+                isScanning = true;
+                const userId = decodedText.split(":")[1];
+                
+                socket.emit('scanQR', { id: userId }, (response) => {
+                    if (response.success) {
+                        const statusColor = response.member.status === '出席' ? '🟢' : '🔴';
+                        showResult(`${response.member.name}さん: ${statusColor} ${response.member.status} に変更しました`, true);
+                    } else {
+                        showResult(`エラー: ${response.message}`, false);
+                    }
+                });
+            } else {
+                // 無効なQRコード
+                isScanning = true;
+                showResult("無効なQRコードです", false);
+            }
+        }
+
+        function onScanFailure(error) {
+            // エラーは常に発生するので無視する（QRが画面にない時など）
+        }
+
+        const html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader",
+            { fps: 10, qrbox: {width: 250, height: 250} },
+            /* verbose= */ false);
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    </script>
+</body>
+</html>
