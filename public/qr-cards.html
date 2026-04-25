@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>バーコード部員証 - 部活出欠管理システム</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 20px;
+        }
+        .controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            background-color: #4F46E5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            background-color: #4338CA;
+        }
+        
+        .cards-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            max-width: 1050px;
+            margin: 0 auto;
+            justify-content: center;
+        }
+        
+        /* CR80 Standard Size (3.375" x 2.125") mapped to pixels approx 324x204 */
+        .id-card {
+            background: white;
+            width: 324px;
+            height: 204px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+            border: 1px solid #e5e7eb;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        /* Left Side Accent & Barcode */
+        .left-panel {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 80px;
+            display: flex;
+            align-items: center;
+        }
+        
+        /* Dark Blue Bar */
+        .vertical-bar {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 25px;
+            background-color: #1e3a8a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+        
+        .vertical-text {
+            color: white;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            font-weight: 700;
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            white-space: nowrap;
+        }
+
+        .squares {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 25px;
+            z-index: 3;
+        }
+        .sq-pink { background-color: #ec4899; height: 10px; }
+        .sq-dblue { background-color: #1e3a8a; height: 10px; }
+        .sq-lblue { background-color: #60a5fa; height: 10px; }
+
+        .barcode-container {
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .barcode-svg {
+            transform: rotate(-90deg);
+            transform-origin: center;
+            max-width: 170px;
+            height: 45px;
+        }
+
+        /* Right Side Content */
+        .right-panel {
+            position: absolute;
+            left: 85px;
+            top: 15px;
+            right: 15px;
+            bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            text-align: center;
+            font-size: 1.05rem;
+            font-weight: 900;
+            color: #1f2937;
+            margin-bottom: 8px;
+            letter-spacing: 1.5px;
+        }
+
+        .info-box {
+            border: 1px solid #1e3a8a;
+            border-radius: 4px;
+            padding: 8px 10px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #fff;
+            position: relative;
+        }
+
+        .info-row {
+            font-size: 0.75rem;
+            color: #374151;
+            margin-bottom: 4px;
+            display: flex;
+        }
+        .info-label {
+            font-weight: bold;
+            width: 65px;
+            flex-shrink: 0;
+        }
+        
+        .department-text {
+            font-size: 0.65rem;
+            color: #4b5563;
+            margin-top: 2px;
+            margin-bottom: 6px;
+        }
+
+        .name-container {
+            display: flex;
+            align-items: center;
+            margin-top: 2px;
+        }
+        .name-label {
+            font-weight: bold;
+            font-size: 0.8rem;
+            width: 45px;
+        }
+        .name-value {
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: #111827;
+            letter-spacing: 2px;
+        }
+
+        .validity-text {
+            margin-top: auto;
+            font-size: 0.6rem;
+            color: #4b5563;
+            text-align: center;
+        }
+
+        .logos-area {
+            position: absolute;
+            bottom: 2px;
+            right: 5px;
+            text-align: right;
+            line-height: 1.1;
+        }
+        .logo-1 {
+            font-weight: 900;
+            font-size: 0.85rem;
+            color: #1e3a8a;
+            letter-spacing: 1px;
+            font-style: italic;
+        }
+        .logo-2 {
+            font-size: 0.55rem;
+            font-weight: bold;
+            color: #6b7280;
+            letter-spacing: 0.5px;
+        }
+
+        @media print {
+            body { background-color: white; padding: 0; }
+            .controls { display: none; }
+            .cards-container { gap: 10px; justify-content: flex-start; }
+            /* Remove shadow and add dashed border for cutting */
+            .id-card { box-shadow: none; border: 1px dashed #9ca3af; }
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button onclick="window.print()">このページを印刷する</button>
+        <button onclick="window.location.href='admin.html'" style="background-color: #6B7280; margin-left: 10px;">管理画面に戻る</button>
+    </div>
+    
+    <div class="cards-container" id="cards-container">
+        <!-- JSでカードを生成 -->
+    </div>
+
+    <script>
+        async function fetchMembers() {
+            try {
+                const response = await fetch('/api/members');
+                const members = await response.json();
+                generateCards(members);
+            } catch (error) {
+                console.error('Error fetching members:', error);
+                document.getElementById('cards-container').innerHTML = '<p>メンバー情報の取得に失敗しました。</p>';
+            }
+        }
+
+        function generateCards(members) {
+            const container = document.getElementById('cards-container');
+            container.innerHTML = '';
+
+            members.forEach(member => {
+                const card = document.createElement('div');
+                card.className = 'id-card';
+                
+                // Assuming "令和5年度 入部生 機械知能システム工学科(4年)" is default. 
+                // We could make this dynamic, but we'll stick to the template's text.
+                // We use a mock Teams ID (e.g. 26Y4MI35) or leave it blank.
+                card.innerHTML = `
+                    <div class="left-panel">
+                        <div class="vertical-bar">
+                            <div class="vertical-text">Y.KNCT ROBOCON</div>
+                        </div>
+                        <div class="squares">
+                            <div class="sq-pink"></div>
+                            <div class="sq-dblue"></div>
+                            <div class="sq-lblue"></div>
+                        </div>
+                        <div class="barcode-container">
+                            <svg id="barcode-${member.id}" class="barcode-svg"></svg>
+                        </div>
+                    </div>
+                    <div class="right-panel">
+                        <div class="card-header">八代C ロボコン部 部員証</div>
+                        <div class="info-box">
+                            <div class="info-row">
+                                <div class="info-label">部員ID</div>
+                                <div>: No.${member.id}</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Teams ID</div>
+                                <div>: -</div>
+                            </div>
+                            <div class="department-text">令和5年度 入部生 機械知能システム工学科(4年)</div>
+                            
+                            <div class="name-container">
+                                <div class="name-label">氏名 :</div>
+                                <div class="name-value">${member.name}</div>
+                            </div>
+
+                            <div class="validity-text">令和8年4月1日 から 令和9年3月31日まで有効</div>
+                            
+                            <div class="logos-area">
+                                <div class="logo-1">C 高専</div>
+                                <div class="logo-2">RoBoCoN-Club Y.KNCT</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+
+                // バーコード生成 (縦向きにするためSVG自体をCSSで-90度回転)
+                JsBarcode(`#barcode-${member.id}`, `UID${member.id}`, {
+                    format: "CODE128",
+                    width: 2,
+                    height: 50,
+                    displayValue: false, // バーコードの下の文字は非表示
+                    margin: 0
+                });
+            });
+        }
+
+        // パスワードチェック (管理者かどうか)
+        if (sessionStorage.getItem('isAdmin') !== 'true') {
+            const pw = prompt('管理用パスワードを入力してください:');
+            if (pw !== '51068010A' && pw !== 'denken1975') {
+                alert('パスワードが違います');
+                window.location.href = 'index.html';
+            } else {
+                fetchMembers();
+            }
+        } else {
+            fetchMembers();
+        }
+    </script>
+</body>
+</html>
