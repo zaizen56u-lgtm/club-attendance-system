@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>バーコードスキャナー - 部活出欠管理システム</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="emergency.js?v=1.0"></script>
+    <style>
+        .scanner-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        #scan-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2rem;
+            border: 2px solid #4F46E5;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            outline: none;
+        }
+        #scan-input:focus {
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2);
+        }
+        .instructions {
+            color: #6B7280;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        #scan-result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.5rem;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        .success {
+            background-color: #D1FAE5;
+            color: #065F46;
+            border: 1px solid #34D399;
+        }
+        .error {
+            background-color: #FEE2E2;
+            color: #991B1B;
+            border: 1px solid #F87171;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="input-page">
+    <!-- グローバルナビゲーション -->
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-hamburger">
+        <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+    </label>
+    <div class="nav-overlay" onclick="document.getElementById('nav-toggle').checked = false;"></div>
+    <nav class="nav-sidebar">
+        <div class="nav-header">一般メニュー</div>
+        <ul class="nav-links">
+            <li><a href="qr-scanner.html">バーコードスキャナー</a></li>
+            <li><a href="input.html">出欠登録</a></li>
+            <li><a href="board.html">状況一覧</a></li>
+            <li><a href="schedule.html">スケジュール</a></li>
+            <li><a href="tasks.html">タスク</a></li>
+            <li><a href="index.html">ホーム画面</a></li>
+        </ul>
+    </nav>
+
+    <div class="container fade-in">
+        <header>
+            <h1>バーコード読取（専用リーダー用）</h1>
+            <p>USBなどのバーコードリーダーで部員証をスキャンしてください。</p>
+        </header>
+
+        <div class="scanner-container">
+            <div class="instructions">
+                <strong>💡 使い方</strong><br>
+                下の入力欄が選択された（青枠がついた）状態で、リーダーでバーコードを読み取ってください。<br>
+                読み取り後、自動で出欠が記録されます。
+            </div>
+            
+            <form id="scan-form">
+                <input type="text" id="scan-input" placeholder="スキャン待機中..." autocomplete="off" autofocus>
+            </form>
+            
+            <div id="scan-result"></div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="index.html" style="color: white; text-decoration: none; background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.4);">ホームに戻る</a>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let scanTimeout;
+        const inputField = document.getElementById('scan-input');
+        
+        // 常にフォーカスを保つ
+        document.addEventListener('click', (e) => {
+            if(e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
+                inputField.focus();
+            }
+        });
+
+        function showResult(message, isSuccess) {
+            const resultDiv = document.getElementById('scan-result');
+            resultDiv.textContent = message;
+            resultDiv.className = isSuccess ? 'success' : 'error';
+            resultDiv.style.display = 'block';
+            
+            clearTimeout(scanTimeout);
+            // 少ししたら消す
+            scanTimeout = setTimeout(() => {
+                resultDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        document.getElementById('scan-form').addEventListener('submit', (e) => {
+            e.preventDefault(); // フォーム送信を防ぐ
+            
+            const decodedText = inputField.value.trim();
+            inputField.value = ''; // 入力をクリアして次のスキャンに備える
+            inputField.focus();
+            
+            if (!decodedText) return;
+            
+            // decodedText は "user_id:12" のような形式を想定
+            if (decodedText.startsWith("user_id:")) {
+                const userId = decodedText.split(":")[1];
+                
+                socket.emit('scanQR', { id: userId }, (response) => {
+                    if (response.success) {
+                        const statusColor = response.member.status === '出席' ? '🟢' : '🔴';
+                        showResult(`${response.member.name}さん\n${statusColor} ${response.member.status} として記録しました！`, true);
+                    } else {
+                        showResult(`エラー: ${response.message}`, false);
+                    }
+                });
+            } else {
+                // 無効なバーコード
+                showResult("無効なバーコードです", false);
+            }
+        });
+    </script>
+</body>
+</html>
