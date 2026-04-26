@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>出欠入力 - 部活動統合管理システム</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="emergency.js?v=1.0"></script>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="部活動統合管理システム">
+    <link rel="apple-touch-icon" href="/icon.svg">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW setup failed: ', err));
+            });
+        }
+    </script>
+</head>
+<body class="input-page">
+    <!-- グローバルナビゲーション -->
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-hamburger">
+        <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+    </label>
+    <div class="nav-overlay" onclick="document.getElementById('nav-toggle').checked = false;"></div>
+    <nav class="nav-sidebar">
+        <div class="nav-header">一般メニュー</div>
+        <ul class="nav-links">
+            <li><a href="input.html">出席入力</a></li>
+            <li><a href="tasks.html">タスク</a></li>
+            <li><a href="schedule.html">スケジュール</a></li>
+            <li><a href="qr-scanner.html">バーコード入力</a></li>
+            <li><a href="future.html">事前連絡一覧</a></li>
+            <li><a href="board.html">状況一覧</a></li>
+            <li><a href="index.html">ログイン画面に戻る</a></li>
+        </ul>
+    </nav>
+    <div class="container fade-in">
+        <header>
+            <h1>出欠登録</h1>
+            <p>あなたの名前とパスワードを入力し、現在の状況を選択してください。</p>
+        </header>
+
+        <div class="card">
+            <div id="alert-box" class="alert hidden"></div>
+            
+            <form id="attendance-form">
+                <div class="category-toggle" style="display: flex; margin-bottom: 25px; background: #f1f5f9; border-radius: 8px; padding: 4px;">
+                    <button type="button" id="cat-today-btn" style="flex: 1; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); color: #4F46E5;">本日の連絡</button>
+                    <button type="button" id="cat-future-btn" style="flex: 1; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; background: transparent; color: #64748b;">翌日以降の予定</button>
+                </div>
+
+                <div class="form-group">
+                    <label for="member-select">名前</label>
+                    <select id="member-select" required>
+                        <option value="" disabled selected>名前を選択してください</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="display: none;">
+                    <label for="password-input">パスワード</label>
+                    <input type="password" id="password-input" value="">
+                </div>
+
+                <!-- カテゴリー1: 本日の出欠 -->
+                <div id="section-today">
+                    <div class="form-group" id="location-group">
+                        <label for="location-select">現在の場所</label>
+                        <select id="location-select" required>
+                            <option value="体育館" selected>体育館</option>
+                            <option value="部室（加工場）">部室（加工場）</option>
+                            <option value="校内">校内</option>
+                            <option value="-">（設定なし）</option>
+                        </select>
+                    </div>
+
+                    <div class="status-grid form-group">
+                        <label>本日の状況を選択</label>
+                        <div class="status-buttons">
+                            <button type="button" class="status-btn" data-status="出席">出席</button>
+                            <button type="button" class="status-btn" data-status="退席">退席</button>
+                            <button type="button" class="status-btn" data-status="遅刻">今日遅刻</button>
+                            <button type="button" class="status-btn" data-status="欠席">今日欠席</button>
+                            <button type="button" class="status-btn" data-status="休憩">休憩</button>
+                            <button type="button" class="status-btn" data-status="一時外出">一時外出</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- カテゴリー2: 翌日以降の事前連絡 -->
+                <div id="section-future" style="display: none;">
+                    <div class="status-grid form-group">
+                        <label>予定の種類（翌日以降）</label>
+                        <div class="status-buttons">
+                            <button type="button" class="status-btn future-btn" data-status="事前の欠席" style="background:#FEF2F2; color:#B91C1C;">事前の休み (単日)</button>
+                            <button type="button" class="status-btn future-btn" data-status="事前の遅刻" style="background:#FFFBEB; color:#B45309;">事前の遅刻 (単日)</button>
+                            <button type="button" class="status-btn future-btn" data-status="長期休暇" style="background:#FEE2E2; color:#B91C1C;">長期休み (複数日)</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group hidden" id="future-date-group" style="display: none; background: #EEF2FF; padding: 15px; border-radius: 8px; border: 1px solid #C7D2FE; margin-bottom: 20px;">
+                        <label style="color: #4F46E5;" id="future-date-label">対象日を選択 <span style="color:red; font-size:0.85em;">(必須)</span></label>
+                        
+                        <!-- 複数日の場合 -->
+                        <div id="future-date-range" style="display: flex; gap: 10px; align-items: center; margin-top: 5px; display: none;">
+                            <input type="date" id="long-term-start" style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px;">
+                            <span style="font-weight: bold; color: #555;">〜</span>
+                            <input type="date" id="long-term-end" style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px;">
+                        </div>
+                        
+                        <!-- 単日の場合 -->
+                        <div id="future-date-single" style="margin-top: 5px; display: none;">
+                            <input type="date" id="single-date" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;">
+                        </div>
+                        
+                        <p style="font-size: 0.8rem; color: #666; margin-top: 5px;">※休みの日は自動的に除外されます。</p>
+                    </div>
+                </div>
+
+                <input type="hidden" id="selected-status" required>
+
+                <div class="form-group hidden" id="reason-group" style="display: none;">
+                    <label for="reason-input" id="reason-label">理由・詳細 <span style="color:red; font-size:0.85em;">(必須)</span></label>
+                    <textarea id="reason-input" rows="2" placeholder="" style="width: 100%; border-radius: 6px; border: 1px solid #D1D5DB; padding: 10px; font-size: 1rem; margin-top: 5px; resize: vertical; box-sizing: border-box;"></textarea>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submit-btn" disabled>更新する</button>
+            </form>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>

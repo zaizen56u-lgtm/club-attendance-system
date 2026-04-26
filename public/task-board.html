@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タスク状況一覧 - 部活動統合管理システム</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="emergency.js?v=1.0"></script>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="部活動統合管理システム">
+    <link rel="apple-touch-icon" href="/icon.svg">
+    <style>
+        .member-card[data-status="実施中"] { border-left-color: #F59E0B; }
+        .member-card[data-status="実施中"] .member-status { background-color: #F59E0B; color: white; border:none; }
+
+        .member-card[data-status="完了"] { border-left-color: #10B981; }
+        .member-card[data-status="完了"] .member-status { background-color: #10B981; color: white; border:none; }
+    </style>
+    <script>
+        window.currentTeamView = 'ALL';
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW setup failed: ', err));
+            });
+        }
+    </script>
+</head>
+<body class="board-page" style="display: flex; justify-content: center; padding: 40px 20px;">
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-hamburger">
+        <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+    </label>
+    <div class="nav-overlay" onclick="document.getElementById('nav-toggle').checked = false;"></div>
+    <nav class="nav-sidebar">
+        <div class="nav-header">一般メニュー</div>
+        <ul class="nav-links">
+            <li><a href="input.html">出席入力</a></li>
+            <li><a href="tasks.html">タスク</a></li>
+            <li><a href="schedule.html">スケジュール</a></li>
+            <li><a href="qr-scanner.html">バーコード入力</a></li>
+            <li><a href="future.html">事前連絡一覧</a></li>
+            <li><a href="board.html">状況一覧</a></li>
+            <li><a href="index.html">ログイン画面に戻る</a></li>
+        </ul>
+    </nav>
+    <div class="container fade-in" style="width: 100%; max-width: 1200px;">
+        <header class="board-header">
+            <div class="header-left">
+                <h1>タスク状況一覧</h1>
+            </div>
+            <div class="header-right">
+                <div id="clock" class="clock"></div>
+            </div>
+        </header>
+
+        <div class="card" id="board-container">
+            <div class="team-tabs" id="category-tabs" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                <button class="tab-btn active" data-target="ALL" style="flex:1; min-width:80px; text-align:center; padding:10px; background:#4F46E5; color:white; border-radius:8px; font-weight:bold; border:none; cursor:pointer;">すべて</button>
+                <button class="tab-btn" data-target="TEAM_A" style="flex:1; min-width:80px; text-align:center; padding:10px; background:#E5E7EB; color:#374151; border-radius:8px; font-weight:bold; border:none; cursor:pointer;">Aチーム</button>
+                <button class="tab-btn" data-target="TEAM_B" style="flex:1; min-width:80px; text-align:center; padding:10px; background:#E5E7EB; color:#374151; border-radius:8px; font-weight:bold; border:none; cursor:pointer;">Bチーム</button>
+                <button class="tab-btn" data-target="OVERALL" style="flex:1; min-width:80px; text-align:center; padding:10px; background:#E5E7EB; color:#374151; border-radius:8px; font-weight:bold; border:none; cursor:pointer;">部全体</button>
+                <button class="tab-btn" data-target="MANAGER" style="flex:1; min-width:80px; text-align:center; padding:10px; background:#E5E7EB; color:#374151; border-radius:8px; font-weight:bold; border:none; cursor:pointer;">マネージャー</button>
+            </div>
+            
+            <div id="task-list-loading" style="text-align:center; color:#6b7280; padding: 30px;">データを読み込み中...</div>
+            <div id="task-list-empty" style="text-align:center; color:#6b7280; padding: 30px; display: none;">現在表示できるタスクはありません。</div>
+            
+            <div id="board-team-a" class="task-category-section" style="margin-bottom: 30px; display: none;">
+                <h2 style="font-size: 1.3rem; color: #4F46E5; margin-bottom: 15px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">Aチームのタスク</h2>
+                <div class="members-grid category-grid" id="grid-team-a"></div>
+            </div>
+            
+            <div id="board-team-b" class="task-category-section" style="margin-bottom: 30px; display: none;">
+                <h2 style="font-size: 1.3rem; color: #3B82F6; margin-bottom: 15px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">Bチームのタスク</h2>
+                <div class="members-grid category-grid" id="grid-team-b"></div>
+            </div>
+            
+            <div id="board-overall" class="task-category-section" style="margin-bottom: 30px; display: none;">
+                <h2 style="font-size: 1.3rem; color: #10B981; margin-bottom: 15px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">部全体のタスク</h2>
+                <div class="members-grid category-grid" id="grid-overall"></div>
+            </div>
+            
+            <div id="board-manager" class="task-category-section" style="display: none;">
+                <h2 style="font-size: 1.3rem; color: #F59E0B; margin-bottom: 15px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">マネージャーのタスク</h2>
+                <div class="members-grid category-grid" id="grid-manager"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="task-board.js?v=2.1"></script>
+</body>
+</html>
