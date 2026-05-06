@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head><title>Analyze MP3</title></head>
+<body>
+<audio id="aud" src="custom_buzzer.mp3" controls></audio>
+<script>
+    const aud = document.getElementById('aud');
+    const ctx = new AudioContext();
+    const source = ctx.createMediaElementSource(aud);
+    const analyzer = ctx.createAnalyser();
+    analyzer.fftSize = 256;
+    source.connect(analyzer);
+    analyzer.connect(ctx.destination);
+    
+    const bufferLength = analyzer.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    const volumes = [];
+    
+    aud.onplay = () => {
+        let interval = setInterval(() => {
+            analyzer.getByteFrequencyData(dataArray);
+            let sum = 0;
+            for(let i=0; i<bufferLength; i++) sum += dataArray[i];
+            let avg = sum / bufferLength;
+            volumes.push({time: aud.currentTime, vol: avg});
+        }, 50);
+        
+        aud.onended = () => {
+            clearInterval(interval);
+            // find peaks
+            let peaks = [];
+            let inPeak = false;
+            let peakStart = 0;
+            for(let v of volumes) {
+                if (v.vol > 20 && !inPeak) {
+                    inPeak = true;
+                    peakStart = v.time;
+                } else if (v.vol < 10 && inPeak) {
+                    inPeak = false;
+                    peaks.push({start: peakStart, end: v.time});
+                }
+            }
+            console.log(JSON.stringify(peaks));
+            document.title = "DONE";
+        }
+    };
+    aud.play().catch(e => console.log(e));
+</script>
+</body>
+</html>
