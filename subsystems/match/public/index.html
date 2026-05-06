@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>試合タイマーシステム (メニュー)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Noto+Sans+JP:wght@400;500;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .menu-container { text-align: center; margin-top: 100px; }
+        .menu-btn { display: inline-block; padding: 20px 40px; margin: 20px; font-size: 1.5rem; background: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; transition: 0.2s; }
+        .menu-btn:hover { background: #1d4ed8; transform: scale(1.05); }
+        .btn-admin { background: #059669; }
+        .btn-admin:hover { background: #047857; }
+        @media (max-width: 600px) {
+            .menu-btn { display: block; margin: 15px; padding: 15px 20px; font-size: 1.2rem; }
+            .menu-container { margin-top: 40px; }
+            h1 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="menu-container">
+        <h1>試合得点・タイマーボードシステム</h1>
+        <p>利用する画面を選択してください</p>
+        <div>
+            <a href="board.html" class="menu-btn" target="_blank">表示専用ボード (観客・選手用)</a>
+            <a href="operator.html" class="menu-btn" style="background: #eab308; color: black;" target="_blank">試合運用パネル (得点・時間操作)</a>
+            <a href="referee.html" class="menu-btn" style="background: #ef4444;" target="_blank">審判連絡パネル (チャット・状況確認)</a>
+            <a href="admin.html" class="menu-btn btn-admin" target="_blank">管理者設定パネル (チーム・時間設定)</a>
+        </div>
+        <div style="margin-top: 40px;">
+            <a href="/index.html" class="menu-btn" style="background: #4b5563; font-size: 1.2rem; padding: 15px 30px;">ホーム画面（ログイン画面）に戻る</a>
+        </div>
+    </div>
+</body>
+</html>
