@@ -3,40 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>試合タイマー (表示用)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Noto+Sans+JP:wght@400;500;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <title>状況一覧 - 部活動統合管理システム</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="emergency.js?v=1.0"></script>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="部活動統合管理システム">
+    <link rel="apple-touch-icon" href="/icon.svg">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW setup failed: ', err));
+            });
+        }
+    </script>
 </head>
-<body>
-    <div id="unlock-audio-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; cursor: pointer; backdrop-filter: blur(5px);">
-        <div style="text-align: center; color: white; font-family: 'Noto Sans JP', sans-serif;">
-            <div style="font-size: 6rem; margin-bottom: 10px;">🔊</div>
-            <h1 style="font-size: 4rem; margin: 0;">画面をクリックして開始</h1>
-            <p style="font-size: 1.5rem; margin-top: 20px; opacity: 0.8;">※音声を有効化するために必ずクリックしてください</p>
-        </div>
-    </div>
-    <!-- 表示専用ボード（操作パネルなし） -->
-    <div class="app-container" style="max-width: 98%; width: 100%;">
-        <div class="scoreboard" style="height: 95vh; display: flex; flex-direction: column;">
-            <div class="timer-section" style="flex: 1.6; position: relative; padding: 0;">
-                <div class="timer-display" id="main-timer" style="font-size: 45vh; margin-top: 1vh; letter-spacing: 2vw;">0:00</div>
+<body class="board-page" style="display: flex; justify-content: center; padding: 40px 20px;">
+    <!-- グローバルナビゲーション -->
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-hamburger">
+        <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+    </label>
+    <div class="nav-overlay" onclick="document.getElementById('nav-toggle').checked = false;"></div>
+    <nav class="nav-sidebar">
+        <div class="nav-header">一般メニュー</div>
+        <ul class="nav-links">
+            <li><a href="input.html">出席入力</a></li>
+            <li><a href="tasks.html">タスク</a></li>
+            <li><a href="qr-scanner.html">バーコード入力</a></li>
+            <li><a href="future.html">事前連絡一覧</a></li>
+            <li><a href="board.html">状況一覧</a></li>
+            <li><a href="index.html">ログイン画面に戻る</a></li>
+        </ul>
+    </nav>
+    <div class="container fade-in" style="width: 100%; max-width: 1200px;">
+        <header class="board-header">
+            <div class="header-left">
+                <h1>現在の状況一覧</h1>
             </div>
-            <div class="teams-section" style="flex: 1.4; height: auto;">
-                <div class="team-box team-left" id="box-left" style="position: relative; padding: 1vh 2vw; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                    <div id="penalty-left" style="font-size: 5vh; font-family: 'Share Tech Mono'; color: #fff; font-weight: bold; background: transparent; border: 5px solid #facc15; border-radius: 12px; padding: 0.5vh 2vw; margin-bottom: 0.5vh; display: none;">15s</div>
-                    <div class="score-display" id="score-left" style="font-size: 20vh; margin-bottom: 0;">0</div>
-                    <div class="team-name display-only" id="name-left" style="font-size: 12vh; margin-top: 0.5vh; font-weight: 800;">チームA</div>
-                    <div id="retry-left" style="font-size: 5vh; font-weight: bold; background: #eab308; color: white; border: 4px solid #facc15; padding: 0.5vh 2vw; border-radius: 10px; margin-top: 0.5vh; display: none; text-align: center;">リトライ</div>
-                </div>
-                <div class="team-box team-right" id="box-right" style="position: relative; padding: 1vh 2vw; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                    <div id="penalty-right" style="font-size: 5vh; font-family: 'Share Tech Mono'; color: #fff; font-weight: bold; background: transparent; border: 5px solid #facc15; border-radius: 12px; padding: 0.5vh 2vw; margin-bottom: 0.5vh; display: none;">15s</div>
-                    <div class="score-display" id="score-right" style="font-size: 20vh; margin-bottom: 0;">0</div>
-                    <div class="team-name display-only" id="name-right" style="font-size: 12vh; margin-top: 0.5vh; font-weight: 800;">チームB</div>
-                    <div id="retry-right" style="font-size: 5vh; font-weight: bold; background: #eab308; color: white; border: 4px solid #facc15; padding: 0.5vh 2vw; border-radius: 10px; margin-top: 0.5vh; display: none; text-align: center;">リトライ</div>
-                </div>
+            <div class="header-right">
+                <div id="clock" class="clock"></div>
+            </div>
+        </header>
+
+        <!-- チーム切り替え用タブ -->
+        <div class="team-tabs" style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <a href="board.html" class="tab-btn active" style="flex:1; text-align:center; padding:10px; background:#4F46E5; color:white; border-radius:8px; font-weight:bold; text-decoration:none;">部全体</a>
+            <a href="board-a.html" class="tab-btn" style="flex:1; text-align:center; padding:10px; background:#E5E7EB; color:#374151; border-radius:8px; font-weight:bold; text-decoration:none;">Aチーム</a>
+            <a href="board-b.html" class="tab-btn" style="flex:1; text-align:center; padding:10px; background:#E5E7EB; color:#374151; border-radius:8px; font-weight:bold; text-decoration:none;">Bチーム</a>
+            <a href="board-other.html" class="tab-btn" style="flex:1; text-align:center; padding:10px; background:#E5E7EB; color:#374151; border-radius:8px; font-weight:bold; text-decoration:none;">その他</a>
+        </div>
+
+        <div class="card">
+            <div id="members-grid" class="members-grid">
+                <!-- JavaScriptで動的に追加されます -->
             </div>
         </div>
+
     </div>
+    
     <script src="board.js"></script>
 </body>
 </html>

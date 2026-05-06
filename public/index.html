@@ -3,30 +3,510 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>試合タイマーシステム (メニュー)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Noto+Sans+JP:wght@400;500;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <title>起動 - 部活動統合管理システム</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
     <style>
-        .menu-container { text-align: center; margin-top: 100px; }
-        .menu-btn { display: inline-block; padding: 20px 40px; margin: 20px; font-size: 1.5rem; background: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; transition: 0.2s; }
-        .menu-btn:hover { background: #1d4ed8; transform: scale(1.05); }
-        .btn-admin { background: #059669; }
-        .btn-admin:hover { background: #047857; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #4F46E5 0%, #2563EB 50%, #3B82F6 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow-x: hidden;
+            padding: 20px;
+            word-break: keep-all;
+            overflow-wrap: break-word;
+        }
+
+        /* 背景装飾 */
+        .bg-circle-1, .bg-circle-2 {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            z-index: 0;
+            pointer-events: none;
+        }
+        .bg-circle-1 {
+            width: 500px;
+            height: 500px;
+            top: -100px;
+            left: -150px;
+            animation: float 8s ease-in-out infinite alternate;
+        }
+        .bg-circle-2 {
+            width: 300px;
+            height: 300px;
+            bottom: -50px;
+            right: -50px;
+            animation: float 6s ease-in-out infinite alternate-reverse;
+        }
+
+        /* メインコンテナ */
+        .page-container {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: none;
+            padding: 0 80px; /* どの画面でも必ず左右に固定の80pxの余白を作る */
+            box-sizing: border-box;
+        }
+
+        /* 上部エリア（ロゴとタイトル） */
+        .header-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 40px;
+            text-align: center;
+            width: 100%;
+            min-width: max-content;
+        }
+
+        .school-logo {
+            max-width: 180px;
+            max-height: 180px;
+            object-fit: contain;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            /* ロゴ背景が白などの場合を考慮 */
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            animation: slideDown 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .splash-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.05em;
+            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            animation: slideDown 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+            white-space: nowrap;
+            min-width: max-content;
+            word-break: keep-all;
+        }
+
+        .splash-subtitle {
+            font-size: 1.3rem;
+            font-weight: 500;
+            opacity: 0.9;
+            animation: fadeIn 1.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            white-space: nowrap;
+            min-width: max-content;
+            word-break: keep-all;
+        }
+
+        /* 中央のレイアウト（左画像・ログインカード・右画像） */
+        .content-row {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap; /* 画面が狭いときは下に落ちるように */
+            gap: 40px;
+            width: 100%;
+        }
+
+        .side-image-wrapper {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-width: 0; /* 画像爆発問題を防ぐ */
+            min-width: 250px;
+            max-width: 350px;
+            animation: fadeIn 1.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .side-image-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            min-width: 0; /* 画像爆発問題を防ぐ */
+            min-width: 250px;
+            max-width: 350px;
+            animation: fadeIn 1.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .side-image {
+            width: 100%;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .side-image:hover {
+            transform: scale(1.05);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* ログインカード */
+        .login-card-wrapper {
+            flex: 1;
+            flex-shrink: 0; /* フレックスによる圧縮をブロック */
+            min-width: 350px; /* 最小幅を保証し、縦割れを防ぐ */
+            max-width: 380px;
+            width: 100%;
+        }
+
+        .splash-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 40px;
+            border-radius: 24px;
+            width: 100%;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.4);
+            animation: slideUp 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .splash-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 8px;
+            text-align: center;
+            white-space: nowrap; /* 枠が小さくてもタイトルを絶対に折り返さない */
+        }
+
+        .splash-card p {
+            font-size: 0.9rem;
+            opacity: 0.85;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .splash-input {
+            width: 100%;
+            padding: 16px 20px;
+            font-size: 1.1rem;
+            color: #333;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+            outline: none;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            letter-spacing: 0.1em;
+        }
+
+        .splash-input:focus {
+            background: #ffffff;
+            border-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .splash-input::placeholder {
+            color: #9CA3AF;
+            letter-spacing: normal;
+        }
+
+        .splash-btn {
+            width: 100%;
+            padding: 16px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #4F46E5;
+            background: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .splash-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .splash-btn:active {
+            transform: translateY(1px);
+        }
+
+        .splash-btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .splash-btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .splash-error {
+            color: #EF4444;
+            background: #FEE2E2;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: none;
+            text-align: center;
+            border: 1px solid #F87171;
+            animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        }
+
+        /* アニメーション */
+        @keyframes float {
+            0% { transform: translateY(0px) scale(1); }
+            100% { transform: translateY(-30px) scale(1.05); }
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* レスポンシブ */
+        @media (max-width: 900px) {
+            .content-row {
+                flex-direction: column;
+                gap: 30px;
+            }
+            .side-image-wrapper {
+                max-width: 80%;
+            }
+        }
+        
+        /* ログイン画面のレスポンシブ配置 (3列 x 2段) */
+        .splash-card-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center; /* 2段目の2個を中央寄せにする */
+            gap: 24px;
+            width: 100%; /* 親コンテナの幅（固定余白を引いた分）をフルに使う */
+            max-width: none; /* 上限をなくし、常に同じ余白サイズを保つ */
+            margin: 0 auto;
+            padding: 20px 0;
+        }
+        
+        .splash-card-grid > .splash-card {
+            /* 1列に3個並べるための幅計算 (gapの分を引く) */
+            width: calc(33.333% - 16px);
+            min-width: 320px; /* 画面が狭くなった時に自動で2列→1列に折り返すための保護 */
+        }
     </style>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="部活動統括管理システム">
+    <link rel="apple-touch-icon" href="/icon.svg">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW setup failed: ', err));
+            });
+        }
+    </script>
 </head>
 <body>
-    <div class="menu-container">
-        <h1>試合得点・タイマーボードシステム</h1>
-        <p>利用する画面を選択してください</p>
-        <div>
-            <a href="board.html" class="menu-btn" target="_blank">表示専用ボード (観客・選手用)</a>
-            <a href="operator.html" class="menu-btn" style="background: #eab308; color: black;" target="_blank">試合運用パネル (得点・時間操作)</a>
-            <a href="referee.html" class="menu-btn" style="background: #ef4444;" target="_blank">審判連絡パネル (チャット・状況確認)</a>
-            <a href="admin.html" class="menu-btn btn-admin" target="_blank">管理者設定パネル (チーム・時間設定)</a>
+    <div class="page-container">
+        <!-- タイトル帯 -->
+        <div class="header-section">
+            <h1 class="splash-title">部活動統括管理システム</h1>
+            <p class="splash-subtitle">各種システム・ツールを統合した総合ポータル</p>
         </div>
-        <div style="margin-top: 40px;">
-            <a href="/index.html" class="menu-btn" style="background: #4b5563; font-size: 1.2rem; padding: 15px 30px;">ホーム画面（ログイン画面）に戻る</a>
+
+        <!-- 5つのシステム入り口 -->
+        <div class="splash-card-grid">
+            
+            <!-- ① 出欠管理システム -->
+            <div class="splash-card" style="display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 280px; padding: 30px 20px; box-sizing: border-box;">
+                <div>
+                    <h3 style="font-size: 1.6rem;">出欠管理システム</h3>
+                    <p style="margin-bottom: 25px; font-size: 1.1rem;">日々の出欠・スケジュール管理</p>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button id="startup-btn" class="splash-btn" style="padding: 14px; font-size: 1.3rem;">システムを開く</button>
+                    <button id="qr-scan-btn" class="splash-btn splash-btn-secondary" style="background: rgba(255, 255, 255, 0.5); color: #333; padding: 12px; font-size: 1.1rem;">バーコード入力</button>
+                </div>
+            </div>
+
+            <!-- ② 状況一覧 -->
+            <div class="splash-card" style="display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 280px; padding: 30px 20px; box-sizing: border-box;">
+                <div>
+                    <h3 style="font-size: 1.6rem;">現在の状況一覧</h3>
+                    <p style="margin-bottom: 25px; font-size: 1.1rem;">部員全員のリアルタイム状況</p>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button id="status-btn" class="splash-btn" style="padding: 14px; font-size: 1.3rem;">一覧を見る</button>
+                </div>
+            </div>
+
+            <!-- ③ スケジュール管理 -->
+            <div class="splash-card" style="display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 280px; padding: 30px 20px; box-sizing: border-box;">
+                <div>
+                    <h3 style="font-size: 1.6rem;">スケジュール管理</h3>
+                    <p style="margin-bottom: 25px; font-size: 1.1rem;">活動予定・カレンダー設定</p>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button id="schedule-btn" class="splash-btn" style="padding: 14px; font-size: 1.3rem;">システムを開く</button>
+                </div>
+            </div>
+
+            <!-- ④ タイマー・審判システム -->
+            <div class="splash-card" style="display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 280px; padding: 30px 20px; box-sizing: border-box;">
+                <div>
+                    <h3 style="font-size: 1.6rem;">タイマー・審判</h3>
+                    <p style="margin-bottom: 25px; font-size: 1.1rem;">試合進行・得点管理チャット</p>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button id="match-btn" class="splash-btn" style="padding: 14px; font-size: 1.3rem;">システムを開く</button>
+                </div>
+            </div>
+
+            <!-- ⑤ 交通機関 時刻表 -->
+            <div class="splash-card" style="display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 280px; padding: 30px 20px; box-sizing: border-box;">
+                <div>
+                    <h3 style="font-size: 1.6rem;">交通機関 時刻表</h3>
+                    <p style="margin-bottom: 25px; font-size: 1.1rem;">リアルタイム運行状況・時刻表</p>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button id="transit-btn" class="splash-btn" style="padding: 14px; font-size: 1.3rem;">システムを開く</button>
+                </div>
+            </div>
+
+            <!-- ⑥ 管理者設定 -->
+            <div class="splash-card" style="display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 280px; padding: 30px 20px; box-sizing: border-box;">
+                <div>
+                    <h3 style="font-size: 1.6rem;">管理者設定</h3>
+                    <p style="margin-bottom: 25px; font-size: 1.1rem;">データ管理・各種設定</p>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <input type="password" id="startup-pw" class="splash-input" placeholder="パスワードを入力" style="margin-bottom: 0; padding: 12px; font-size: 1.2rem;">
+                    <button id="admin-btn" class="splash-btn" style="padding: 14px; font-size: 1.3rem;">ログイン</button>
+                    <div id="startup-error" class="splash-error" style="padding: 8px; font-size: 1rem;">パスワードが違います</div>
+                </div>
+            </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputEl = document.getElementById('startup-pw');
+            const btnEl = document.getElementById('startup-btn');
+            const adminBtnEl = document.getElementById('admin-btn');
+            const errEl = document.getElementById('startup-error');
+
+            const transitionTo = (url) => {
+                document.body.style.transition = "opacity 0.4s ease";
+                document.body.style.opacity = "0";
+                setTimeout(() => {
+                    window.location.href = url;
+                }, 400);
+            };
+
+            btnEl.addEventListener('click', () => { 
+                sessionStorage.removeItem('isAdmin');
+                transitionTo('input.html');
+            });
+
+            const qrBtnEl = document.getElementById('qr-scan-btn');
+            if (qrBtnEl) {
+                qrBtnEl.addEventListener('click', () => { 
+                    sessionStorage.removeItem('isAdmin');
+                    transitionTo('qr-scanner.html');
+                });
+            }
+
+            const statusBtnEl = document.getElementById('status-btn');
+            if (statusBtnEl) {
+                statusBtnEl.addEventListener('click', () => { 
+                    sessionStorage.removeItem('isAdmin');
+                    transitionTo('board.html');
+                });
+            }
+
+            const matchBtnEl = document.getElementById('match-btn');
+            if (matchBtnEl) {
+                matchBtnEl.addEventListener('click', () => { 
+                    sessionStorage.removeItem('isAdmin');
+                    transitionTo('/subsystems/match/public/index.html');
+                });
+            }
+
+            const transitBtnEl = document.getElementById('transit-btn');
+            if (transitBtnEl) {
+                transitBtnEl.addEventListener('click', () => { 
+                    sessionStorage.removeItem('isAdmin');
+                    transitionTo('train.html');
+                });
+            }
+
+            const scheduleBtnEl = document.getElementById('schedule-btn');
+            if (scheduleBtnEl) {
+                scheduleBtnEl.addEventListener('click', () => { 
+                    sessionStorage.removeItem('isAdmin');
+                    transitionTo('schedule.html');
+                });
+            }
+
+            const attemptAdminLogin = () => {
+                if (inputEl.value === '51068010A') {
+                    sessionStorage.setItem('isAdmin', 'true');
+                    transitionTo('admin.html');
+                } else {
+                    errEl.style.display = 'block';
+                    errEl.style.animation = 'none';
+                    errEl.offsetHeight; // リフロー
+                    errEl.style.animation = null;
+                    
+                    inputEl.value = ''; 
+                    inputEl.focus();
+                    
+                    setTimeout(() => {
+                        errEl.style.display = 'none';
+                    }, 2000);
+                }
+            };
+
+            adminBtnEl.addEventListener('click', attemptAdminLogin);
+
+            inputEl.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if(inputEl.value === '51068010A') attemptAdminLogin();
+                    else {
+                        sessionStorage.removeItem('isAdmin');
+                        transitionTo('input.html');
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>

@@ -1,23 +1,62 @@
 :root {
-    --bg-page: #1e1e1e;
-    --board-bg: #0a0a0a;
-    --timer-color: #ffffff;
-    --team-left-bg: #b91c1c; /* ダークレッド */
-    --team-right-bg: #1d4ed8; /* ダークブルー */
-    --winner-bg: #facc15; /* 勝利チームの黄色 */
-    --winner-text: #000000;
+    --primary: #4F46E5;
+    --primary-hover: #4338CA;
+    --bg-color: #F3F4F6;
+    --card-bg: #FFFFFF;
+    --text-main: #111827;
+    --text-muted: #6B7280;
+    --border-color: #E5E7EB;
+    
+    /* ステータス別のカラー */
+    --status-attending: #10B981; /* 出席: Green */
+    --status-leaving: #3B82F6;   /* 退席: Blue */
+    --status-late: #EA580C;      /* 遅刻: Orange */
+    --status-break: #F59E0B;     /* 休憩: Yellow */
+    --status-outing: #0D9488;    /* 一時外出: Teal */
+    --status-absent: #EF4444;    /* 欠席/早退: Red */
+    --status-default: #D1D5DB;   /* 連絡無し */
 }
 
 * {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
 }
 
 body {
-    font-family: 'Inter', 'Noto Sans JP', sans-serif;
-    background-color: var(--bg-page);
-    color: white;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans JP", Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    line-height: 1.6;
+    font-size: 1rem;
+    overflow-x: hidden;
+    word-break: auto-phrase;
+    overflow-wrap: break-word;
+    font-feature-settings: "palt";
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, p, label {
+    word-break: auto-phrase;
+}
+
+h1 { font-size: 1.5rem !important; }
+h2 { font-size: 1.2rem !important; }
+p, a, button, input, select { font-size: 1rem; font-family: inherit; }
+
+.fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================
+   入力画面 (index.html)
+   ============================ */
+.input-page {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -25,226 +64,448 @@ body {
     padding: 20px;
 }
 
-.app-container {
+.container {
     width: 100%;
-    max-width: 1200px;
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
+    max-width: 480px;
 }
 
-/* =========================================
-   メインスコアボード (画像再現部分)
-========================================= */
-.scoreboard {
-    background-color: var(--board-bg);
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
-    display: flex;
-    flex-direction: column;
-    border: 4px solid #333;
+header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--text-main);
 }
 
-/* タイマー部分 */
-.timer-section {
+header p {
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+}
+
+.card {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(255,255,255,0.8);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-main);
+}
+
+select, input[type="password"] {
     width: 100%;
-    padding: 20px 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #050505; /* より深い黒 */
-    border-bottom: 4px solid #333;
-}
-
-.timer-display {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 14rem; /* 非常に大きく */
-    line-height: 1;
-    color: var(--timer-color);
-    letter-spacing: 5px;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-}
-
-/* チームスコア＆名前部分 */
-.teams-section {
-    display: flex;
-    width: 100%;
-    height: 350px;
-}
-
-.team-box {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    transition: background-color 0.3s, color 0.3s;
-    padding: 20px;
-}
-
-.team-left {
-    background-color: var(--team-left-bg);
-    border-right: 2px solid #333;
-}
-
-.team-right {
-    background-color: var(--team-right-bg);
-    border-left: 2px solid #333;
-}
-
-/* 勝利時のハイライトクラス */
-.team-box.winner {
-    background-color: var(--winner-bg);
-}
-
-.team-left.winner {
-    box-shadow: inset 0 0 0 15px var(--team-left-bg);
-}
-
-.team-right.winner {
-    box-shadow: inset 0 0 0 15px var(--team-right-bg);
-}
-
-.team-box.winner .score-display,
-.team-box.winner .team-name {
-    color: var(--winner-text);
-    text-shadow: none;
-}
-
-.team-box.winner .team-name::placeholder {
-    color: rgba(0, 0, 0, 0.5);
-}
-
-/* スコア表示 */
-.score-display {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 12rem;
-    line-height: 1;
-    margin-bottom: 10px;
-    color: white;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-/* チーム名入力 */
-.team-name {
-    background: transparent;
-    border: none;
-    color: white;
-    font-size: 3.5rem; /* JSで動的に変更されます */
-    font-weight: 900;
-    text-align: center;
-    width: 100%;
-    padding: 0 10px;
-    font-family: inherit;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    outline: none;
-    border-bottom: 2px dashed transparent;
-    transition: font-size 0.2s ease;
-    white-space: nowrap;
-}
-
-.team-name:focus {
-    border-bottom: 2px dashed rgba(255, 255, 255, 0.5);
-}
-
-.admin-input {
-    width: 100%;
-    padding: 10px;
-    font-size: 1.2rem;
-    margin-bottom: 15px;
-    border-radius: 4px;
-    border: 1px solid #555;
-    background: #222;
-    color: white;
-}
-
-
-/* =========================================
-   操作パネル (観客には見せない想定のUI)
-========================================= */
-.control-panel {
-    background-color: #2a2a2a;
-    padding: 20px;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.control-group {
-    background: #333;
-    padding: 15px;
-    border-radius: 6px;
-}
-
-.control-group h3 {
-    margin-bottom: 10px;
+    padding: 12px 16px;
     font-size: 1rem;
-    color: #aaa;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: #F9FAFB;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+}
+
+select:focus, input[type="password"]:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+    background: #FFF;
+}
+
+.status-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 10px;
+}
+
+.status-btn {
+    padding: 12px 0;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-main);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.status-btn:hover {
+    background: #F3F4F6;
+    transform: translateY(-2px);
+}
+
+.status-btn.selected {
+    border-color: var(--primary);
+    background: rgba(79, 70, 229, 0.05);
+    color: var(--primary);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    margin-top: 1rem;
+}
+
+.submit-btn:hover:not(:disabled) {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.submit-btn:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.submit-btn:disabled {
+    background: #9CA3AF;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
     text-align: center;
 }
 
-.timer-controls {
+.alert.hidden {
+    display: none;
+}
+
+.alert.success {
+    background-color: #D1FAE5;
+    color: #065F46;
+    border: 1px solid #A7F3D0;
+}
+
+.alert.error {
+    background-color: #FEE2E2;
+    color: #991B1B;
+    border: 1px solid #FECACA;
+}
+
+.links {
+    text-align: center;
+    margin-top: 2rem;
+}
+
+.nav-link {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: color 0.2s;
+}
+
+.nav-link:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+/* ============================
+   一覧画面 (board.html)
+   ============================ */
+.board-page {
+    padding: 30px;
+}
+
+.board-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.board-header {
     display: flex;
-    justify-content: center;
-    gap: 15px;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border-color);
 }
 
-.score-controls-wrapper {
+.header-left h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    color: var(--text-main);
+}
+
+.header-right {
     display: flex;
-    gap: 15px;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
 }
 
-.team-control {
-    flex: 1;
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 600;
 }
 
-.left-control { border-top: 4px solid var(--team-left-bg); }
-.right-control { border-top: 4px solid var(--team-right-bg); }
+.pulsing-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--status-attending);
+    border-radius: 50%;
+    animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
 
-.score-buttons {
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .5; }
+}
+
+.clock {
+    font-size: 1.5rem;
+    font-family: monospace;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.members-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
+    gap: 24px;
 }
 
-.action-control {
+.member-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    border-left: 6px solid var(--status-default);
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    gap: 10px;
+    justify-content: space-between;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s;
+    position: relative;
+    overflow: hidden;
 }
 
-/* ボタン共通 */
-.btn {
-    padding: 10px 15px;
-    border: none;
+.member-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.member-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+
+.member-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.member-status-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.member-status {
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.025em;
+    color: white;
+}
+
+.member-location {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: #F3F4F6;
+    padding: 2px 8px;
     border-radius: 4px;
-    font-size: 1rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: 0.2s;
-    font-family: inherit;
 }
 
-.btn:active { transform: scale(0.95); }
+.member-update {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-align: right;
+}
 
-.btn-play { background-color: #22c55e; color: white; }
-.btn-pause { background-color: #f59e0b; color: white; }
-.btn-reset, .btn-setting { background-color: #64748b; color: white; }
+/* メンバーカードのステータス色付けルール */
+.member-card[data-status="出席"] { border-left-color: var(--status-attending); }
+.member-card[data-status="出席"] .member-status { background-color: var(--status-attending); }
 
-.btn-score { background-color: #4b5563; color: white; font-size: 1.2rem; }
-.btn-score:hover { background-color: #6b7280; }
-.btn-minus { background-color: #991b1b; color: white; }
+.member-card[data-status="退席"] { border-left-color: var(--status-leaving); opacity: 0.8; }
+.member-card[data-status="退席"] .member-status { background-color: var(--status-leaving); }
 
-.btn-highlight { background-color: var(--winner-bg); color: black; }
-.btn-clear { background-color: #4b5563; color: white; }
+.member-card[data-status="遅刻"] { border-left-color: var(--status-late); }
+.member-card[data-status="遅刻"] .member-status { background-color: var(--status-late); }
 
-/* レスポンシブ調整 */
-@media (max-width: 800px) {
-    .timer-display { font-size: 8rem; }
-    .score-display { font-size: 6rem; }
-    .team-name { font-size: 2rem; }
-    .score-controls-wrapper { flex-direction: column; }
+.member-card[data-status="欠席"] { border-left-color: var(--status-absent); opacity: 0.8; }
+.member-card[data-status="欠席"] .member-status { background-color: var(--status-absent); }
+
+.member-card[data-status="休憩"] { border-left-color: var(--status-break); }
+.member-card[data-status="休憩"] .member-status { background-color: var(--status-break); }
+
+.member-card[data-status="一時外出"] { border-left-color: var(--status-outing); }
+.member-card[data-status="一時外出"] .member-status { background-color: var(--status-outing); }
+
+.member-card[data-status="早退"] { border-left-color: var(--status-absent); opacity: 0.8;}
+.member-card[data-status="早退"] .member-status { background-color: var(--status-absent); }
+
+.member-card[data-status="連絡無し"] { border-left-color: var(--status-default); }
+.member-card[data-status="連絡無し"] .member-status { background-color: var(--status-default); color: var(--text-main); border: 1px solid var(--border-color);}
+
+/* 更新時のフラッシュアニメーション */
+@keyframes highlightUpdate {
+    0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+}
+
+.highlight {
+    animation: highlightUpdate 1.5s ease-out;
+}
+
+/* レスポンシブ対応：状況一覧のカード（スマホなどで適正な列数にする） */
+@media screen and (max-width: 900px) {
+    .members-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+@media screen and (max-width: 600px) {
+    .members-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ============================
+   グローバルナビゲーション (共通)
+   ============================ */
+.nav-toggle { display: none; }
+.nav-hamburger {
+    position: fixed; top: 20px; right: 20px; width: 50px; height: 50px;
+    background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    cursor: pointer; z-index: 1000; transition: all 0.3s ease;
+    border: 1px solid rgba(255,255,255,0.4);
+}
+.nav-hamburger:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+.nav-hamburger .bar {
+    width: 22px; height: 2px; background-color: var(--primary); margin: 3px 0;
+    transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 2px;
+}
+.nav-toggle:checked ~ .nav-hamburger .bar:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+.nav-toggle:checked ~ .nav-hamburger .bar:nth-child(2) { opacity: 0; }
+.nav-toggle:checked ~ .nav-hamburger .bar:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+
+.nav-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    opacity: 0; visibility: hidden; transition: all 0.3s ease; z-index: 998;
+}
+.nav-toggle:checked ~ .nav-overlay { opacity: 1; visibility: visible; }
+
+.nav-sidebar {
+    position: fixed; top: 0; right: -300px; width: 280px; height: 100vh;
+    background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: -5px 0 30px rgba(0,0,0,0.15); z-index: 999;
+    transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex; flex-direction: column; padding: 80px 0 20px;
+}
+.nav-toggle:checked ~ .nav-sidebar { right: 0; }
+.nav-header { padding: 0 30px 15px; font-weight: 800; font-size: 1.3rem; border-bottom: 1px solid var(--border-color); color: var(--text-main); margin-bottom: 10px; }
+.nav-links { list-style: none; margin: 0; padding: 0; }
+.nav-links li { margin-bottom: 5px; }
+.nav-links a {
+    display: block; padding: 12px 30px; text-decoration: none;
+    color: #4b5563; font-weight: 600; font-size: 1.05rem;
+    transition: all 0.2s; border-left: 4px solid transparent;
+}
+.nav-links a:hover {
+    background: rgba(79, 70, 229, 0.05); color: var(--primary);
+    border-left-color: var(--primary); letter-spacing: 0.5px;
+}
+
+/* スマホ用カレンダー表示の最適化（横スクロールなしで、画面幅に綺麗に収める） */
+@media screen and (max-width: 768px) {
+    /* ツールバーを縦並びに整理 */
+    .fc .fc-header-toolbar {
+        flex-direction: column !important;
+        gap: 8px;
+        margin-bottom: 10px !important;
+    }
+    .fc .fc-toolbar-title { font-size: 1.2rem !important; }
+    .fc .fc-button { font-size: 0.85rem !important; padding: 6px 10px !important; }
+
+    /* 横スクロールや固定幅を完全に解除し、画面幅（100%）にぴったり合わせる */
+    .fc { width: 100% !important; }
+    .fc .fc-view-harness { overflow: hidden !important; padding-bottom: 0 !important; }
+    .fc .fc-scrollgrid { min-width: 0 !important; width: 100% !important; }
+
+    /* 日付テキスト・ヘッダー調整（重なり防止） */
+    .fc .fc-daygrid-day-number {
+        font-size: 0.75rem !important;
+        padding: 2px !important;
+    }
+    .fc .fc-col-header-cell-cushion {
+        font-size: 0.65rem !important; /* 週表示などで日付が重ならないようにさらに縮小 */
+        padding: 2px !important;
+        white-space: normal !important; /* 横に突き抜けず、枠内で改行させる */
+        word-break: break-word !important; 
+        line-height: 1.2 !important;
+        display: block !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 予定ブロック全体をコンパクトに */
+    .fc .fc-event {
+        margin: 1px !important;
+        padding: 1px !important;
+        border-radius: 2px !important;
+    }
+    .fc-h-event .fc-event-main {
+        padding: 0 !important;
+    }
+    
+    /* 予定のテキストが枠を破壊してキモくなる現象を防ぎ、綺麗に折り返す */
+    .fc .fc-event-title, .fc .fc-event-time {
+        font-size: 0.65rem !important; /* スマホで潰れないギリギリの極小サイズ */
+        line-height: 1.1 !important;
+        white-space: normal !important; /* 折り返しを許可 */
+        word-break: break-all !important; /* 文字単位で確実に折り返す */
+        text-align: center !important;
+    }
 }
