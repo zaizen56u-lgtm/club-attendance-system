@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>PDF Viewer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <style>
+    body { background-color: #f0f0f0; margin: 0; padding: 20px; text-align: center; }
+    canvas { border: 1px solid black; background-color: white; max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+  <h1>PDF Visual Layout</h1>
+  <canvas id="pdf-canvas"></canvas>
+  <div id="text-layer" style="margin-top: 20px; white-space: pre-wrap; font-family: monospace; text-align: left; background: white; padding: 10px; border: 1px solid #ccc;"></div>
+  
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    
+    pdfjsLib.getDocument('template.pdf').promise.then(function(pdf) {
+      pdf.getPage(1).then(function(page) {
+        var scale = 2.0;
+        var viewport = page.getViewport({scale: scale});
+        
+        var canvas = document.getElementById('pdf-canvas');
+        var context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        var renderContext = {
+          canvasContext: context,
+          viewport: viewport
+        };
+        page.render(renderContext);
+        
+        // Extract text
+        page.getTextContent().then(function(textContent) {
+            let text = "";
+            for (let item of textContent.items) {
+                text += item.str + " ";
+            }
+            document.getElementById('text-layer').textContent = text;
+        });
+      });
+    });
+  </script>
+</body>
+</html>
