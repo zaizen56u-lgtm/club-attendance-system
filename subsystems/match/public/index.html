@@ -13,9 +13,10 @@
         .btn-admin { background: #059669; }
         .btn-admin:hover { background: #047857; }
         @media (max-width: 600px) {
-            .menu-btn { display: block; margin: 15px; padding: 15px 20px; font-size: 1.2rem; }
+            .menu-btn { display: block; margin: 15px; padding: 15px 10px; font-size: 1.1rem; }
             .menu-container { margin-top: 40px; }
-            h1 { font-size: 1.5rem; }
+            h1 { font-size: 1.3rem; word-break: keep-all; }
+            .sp-br { display: block; font-size: 0.9em; margin-top: 5px; }
         }
     </style>
 </head>
@@ -24,13 +25,13 @@
         <h1>試合得点・タイマーボードシステム</h1>
         <p>利用する画面を選択してください</p>
         <div>
-            <a href="board.html" class="menu-btn" target="_blank">表示専用ボード (観客・選手用)</a>
-            <a href="operator.html" class="menu-btn" style="background: #eab308; color: black;" target="_blank">試合運用パネル (得点・時間操作)</a>
-            <a href="referee.html" class="menu-btn" style="background: #ef4444;" target="_blank">審判連絡パネル (チャット・状況確認)</a>
-            <a href="admin.html" class="menu-btn btn-admin" target="_blank">管理者設定パネル (チーム・時間設定)</a>
+            <a href="board.html" class="menu-btn" target="_blank">表示専用ボード <span class="sp-br">(観客・選手用)</span></a>
+            <a href="operator.html" class="menu-btn" style="background: #eab308; color: black;" target="_blank">試合運用パネル <span class="sp-br">(得点・時間操作)</span></a>
+            <a href="referee.html" class="menu-btn" style="background: #ef4444;" target="_blank">審判連絡パネル <span class="sp-br">(チャット・状況確認)</span></a>
+            <a href="admin.html" class="menu-btn btn-admin" target="_blank">管理者設定パネル <span class="sp-br">(チーム・時間設定)</span></a>
         </div>
         <div style="margin-top: 40px;">
-            <a href="/index.html" class="menu-btn" style="background: #4b5563; font-size: 1.2rem; padding: 15px 30px;">ホーム画面（ログイン画面）に戻る</a>
+            <a href="/index.html" class="menu-btn" style="background: #4b5563; font-size: 1.2rem; padding: 15px 30px;">ホーム画面 <span class="sp-br">（ログイン画面）に戻る</span></a>
         </div>
     </div>
 </body>

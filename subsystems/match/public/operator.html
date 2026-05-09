@@ -77,7 +77,12 @@
             .btn-chat { padding: 8px 15px; font-size: 1rem; }
             .col-red, .col-blue, .col-item { width: auto; }
             .bd-controls { gap: 5px; }
+            .op-retry-buttons { flex-direction: column !important; }
+            .op-retry-buttons button { width: 100%; margin-bottom: 3px; font-size: 0.9rem !important; }
+            .breakdown-table { table-layout: fixed; word-wrap: break-word; }
+            .op-team-select { max-width: 100%; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
         }
+        .op-retry-buttons { margin-top: 10px; display: flex; gap: 5px; justify-content: center; }
     </style>
 </head>
 <body>
@@ -117,7 +122,7 @@
                         <th class="col-red" style="position: relative;">
                             <select id="input-name-left" class="op-team-select" onchange="sendName('SET_NAME_LEFT', this.value)"></select>
                             <div id="retry-left" style="font-size: 1.5rem; font-weight: bold; background: #eab308; color: white; border: 3px solid #facc15; padding: 5px; border-radius: 8px; margin-top: 10px; display: none;">リトライ</div>
-                            <div style="margin-top: 10px; display: flex; gap: 5px; justify-content: center;">
+                            <div class="op-retry-buttons">
                                 <button class="btn-op" style="font-size: 1rem; padding: 5px; background: #eab308; color: black;" onclick="setRetry('left', 'リトライ')">リトライ</button>
                                 <button class="btn-op" style="font-size: 1rem; padding: 5px; background: #dc2626; color: white;" onclick="setRetry('left', '強制リトライ')">強制リトライ</button>
                                 <button class="btn-op" style="font-size: 1rem; padding: 5px; background: #64748b; color: white;" onclick="clearRetry('left')">解除</button>
@@ -127,7 +132,7 @@
                         <th class="col-blue" style="position: relative;">
                             <select id="input-name-right" class="op-team-select" onchange="sendName('SET_NAME_RIGHT', this.value)"></select>
                             <div id="retry-right" style="font-size: 1.5rem; font-weight: bold; background: #eab308; color: white; border: 3px solid #facc15; padding: 5px; border-radius: 8px; margin-top: 10px; display: none;">リトライ</div>
-                            <div style="margin-top: 10px; display: flex; gap: 5px; justify-content: center;">
+                            <div class="op-retry-buttons">
                                 <button class="btn-op" style="font-size: 1rem; padding: 5px; background: #eab308; color: black;" onclick="setRetry('right', 'リトライ')">リトライ</button>
                                 <button class="btn-op" style="font-size: 1rem; padding: 5px; background: #dc2626; color: white;" onclick="setRetry('right', '強制リトライ')">強制リトライ</button>
                                 <button class="btn-op" style="font-size: 1rem; padding: 5px; background: #64748b; color: white;" onclick="clearRetry('right')">解除</button>
