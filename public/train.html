@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>各種交通機関 時刻表 - 部活動出欠管理</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="部活動統合管理システム">
+    <link rel="apple-touch-icon" href="/icon.svg">
+    <style>
+        .train-container {
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .time-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #4F46E5;
+        }
+        .time-card.orange-railway {
+            border-left-color: #F97316;
+        }
+        .station-name {
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 5px;
+            color: #111827;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .direction {
+            font-size: 1.1rem;
+            color: #4B5563;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .next-trains {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .train-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 18px;
+            background: #F3F4F6;
+            border-radius: 8px;
+            font-size: 1.4rem;
+            margin-bottom: 10px;
+        }
+        .train-item.soon {
+            background: #FEF2F2;
+            border-left: 6px solid #EF4444;
+            color: #B91C1C;
+        }
+        .train-item.soon .time-left {
+            color: #DC2626;
+            font-weight: bold;
+        }
+        .train-item.soon .train-id {
+            background: #FECACA;
+            color: #991B1B;
+        }
+        .train-time {
+            font-weight: bold;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+        }
+        .train-clock {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .rotation-toggle-btn {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background-color: #4F46E5;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .rotation-toggle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+        .rotation-toggle-btn.paused {
+            background-color: #EF4444;
+        }
+        .train-id {
+            font-size: 1.4rem;
+            background: #E5E7EB;
+            color: #374151;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+        .last-train-badge {
+            font-size: 1.0rem; /* Moderate from 1.2rem */
+            background: #EF4444;
+            color: white;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 9px;
+            vertical-align: middle;
+        }
+        .time-left {
+            font-size: 1.4rem;
+            color: #4B5563;
+            font-weight: bold;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+        .company-logo {
+            height: 50px;
+            vertical-align: middle;
+            margin-right: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .current-time-display {
+            text-align: center;
+            font-size: 3.5rem;
+            font-weight: bold;
+            color: #1F2937;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .no-train {
+            padding: 15px;
+            text-align: center;
+            color: #6B7280;
+            font-style: italic;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+        }
+        @media (max-width: 1000px) {
+            .grid-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        .carousel-cell {
+            position: relative;
+        }
+
+        /* スマホ向け表示調整 */
+        @media (max-width: 600px) {
+            .current-time-display {
+                font-size: 2.2rem;
+                padding: 15px;
+            }
+            .station-name {
+                font-size: 1.2rem;
+            }
+            .direction {
+                font-size: 1rem;
+            }
+            .train-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+                padding: 12px 14px;
+            }
+            .train-time {
+                width: 100%;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 1px dashed #D1D5DB;
+                padding-bottom: 6px;
+                margin-bottom: 2px;
+            }
+            .train-item > div:last-child {
+                width: 100%;
+                display: flex;
+                flex-direction: row !important;
+                justify-content: space-between;
+                align-items: flex-end !important;
+            }
+            .time-left {
+                font-size: 1.2rem;
+            }
+            .status-container {
+                font-size: 1.0rem !important;
+                margin-top: 0 !important;
+                text-align: right !important;
+            }
+        }
+    </style>
+</head>
+<body class="board-page" style="display: flex; justify-content: center; padding: 5px 10px;">
+    <!-- グローバルナビゲーション -->
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-hamburger">
+        <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+    </label>
+    <div class="nav-overlay" onclick="document.getElementById('nav-toggle').checked = false;"></div>
+    <nav class="nav-sidebar">
+        <div class="nav-header">時刻表メニュー</div>
+        <ul class="nav-links">
+            <li><a href="index.html">ログイン画面に戻る</a></li>
+        </ul>
+    </nav>
+
+    <div class="container fade-in" style="width: 100%; max-width: 100%; padding: 0 5px;">
+        <header class="board-header" style="margin-bottom: 10px;">
+            <div class="header-left">
+                <h1>各種交通機関 時刻表</h1>
+            </div>
+        </header>
+
+        <div class="train-container">
+            <div class="current-time-display" id="current-time">--:--:--</div>
+
+            <div class="grid-container">
+                <!-- JR Kyushu Column -->
+                <div class="carousel-cell">
+                    <div class="time-card fade-in" id="card-jr1">
+                        <div class="station-name"><img src="jr_kyushu.webp" class="company-logo" alt="JR九州">JR九州 八代駅</div>
+                        <div class="direction">鹿児島本線 (熊本・鳥栖方面)</div>
+                        <div class="next-trains" id="yatsushiro-trains"></div>
+                    </div>
+                    <div class="time-card fade-in" id="card-jr2" style="display: none; border-left-color: #10B981;">
+                        <div class="station-name"><img src="jr_kyushu.webp" class="company-logo" alt="JR九州">JR九州 肥薩線 (代行輸送)</div>
+                        <div class="direction">八代駅発 (坂本・一勝地・人吉方面) ※代行バス</div>
+                        <div class="next-trains" id="hisatsu-line-trains"></div>
+                    </div>
+                    <div class="time-card fade-in" id="card-jr3" style="display: none; border-left-color: #F87171;">
+                        <div class="station-name"><img src="jr_kyushu.webp" class="company-logo" alt="JR九州">JR九州 新八代駅</div>
+                        <div class="direction">九州新幹線 上り (博多・新大阪方面)</div>
+                        <div class="next-trains" id="shinkansen-up"></div>
+                    </div>
+                    <div class="time-card fade-in" id="card-jr4" style="display: none; border-left-color: #F87171;">
+                        <div class="station-name"><img src="jr_kyushu.webp" class="company-logo" alt="JR九州">JR九州 新八代駅</div>
+                        <div class="direction">九州新幹線 下り (鹿児島中央方面)</div>
+                        <div class="next-trains" id="shinkansen-down"></div>
+                    </div>
+                </div>
+
+                <!-- Hisatsu Orange Railway Column -->
+                <div class="carousel-cell">
+                    <div class="time-card orange-railway fade-in" id="card-orange1">
+                        <div class="station-name"><img src="hisatsu_orange.png" class="company-logo" alt="肥薩おれんじ鉄道">肥薩おれんじ鉄道 肥後高田駅</div>
+                        <div class="direction">上り (八代方面)</div>
+                        <div class="next-trains" id="higo-kouda-up-trains"></div>
+                    </div>
+                    <div class="time-card orange-railway fade-in" id="card-orange2" style="display: none;">
+                        <div class="station-name"><img src="hisatsu_orange.png" class="company-logo" alt="肥薩おれんじ鉄道">肥薩おれんじ鉄道 肥後高田駅</div>
+                        <div class="direction">下り (水俣・出水方面)</div>
+                        <div class="next-trains" id="higo-kouda-down-trains"></div>
+                    </div>
+                </div>
+
+                <!-- Sanko Bus Column -->
+                <div class="carousel-cell">
+                    <div class="time-card fade-in" id="card-sanko1" style="border-left-color: #3B82F6;">
+                        <div class="station-name"><img src="sanko_bus.webp" class="company-logo" alt="産交バス">産交バス 短大高専前</div>
+                        <div class="direction">八代駅・市役所前方面 / 日奈久方面 など</div>
+                        <div class="next-trains" id="sanko-tandai-bus"></div>
+                    </div>
+                    <div class="time-card fade-in" id="card-sanko2" style="display: none; border-left-color: #3B82F6;">
+                        <div class="station-name"><img src="sanko_bus.webp" class="company-logo" alt="産交バス">産交バス 高田駅前</div>
+                        <div class="direction">八代駅・市役所前方面 / 日奈久方面 など</div>
+                        <div class="next-trains" id="sanko-kouda-bus"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <button id="rotation-toggle" class="rotation-toggle-btn" onclick="toggleRotation()">
+        <span>🔄 ローテーション: ON</span>
+    </button>
+    
+    <script src="train.js"></script>
+    <script>
+        let isRotationActive = true;
+        
+        function toggleRotation() {
+            isRotationActive = !isRotationActive;
+            const btn = document.getElementById('rotation-toggle');
+            if (isRotationActive) {
+                btn.innerHTML = '<span>🔄 ローテーション: ON</span>';
+                btn.classList.remove('paused');
+            } else {
+                btn.innerHTML = '<span>⏸️ ローテーション: OFF</span>';
+                btn.classList.add('paused');
+            }
+        }
+
+        // Inner carousel rotation logic (Alternate between up/down routes within columns)
+        let jrState = 0;
+        let orangeState = 0;
+        let sankoState = 0;
+        setInterval(() => {
+            if (!isRotationActive) return;
+            
+            jrState = (jrState + 1) % 4; // Toggle 0, 1, 2, 3
+            orangeState = 1 - orangeState; // Toggle 0 and 1
+            sankoState = 1 - sankoState; // Toggle 0 and 1
+            
+            // JR
+            document.getElementById('card-jr1').style.display = jrState === 0 ? 'block' : 'none';
+            document.getElementById('card-jr2').style.display = jrState === 1 ? 'block' : 'none';
+            document.getElementById('card-jr3').style.display = jrState === 2 ? 'block' : 'none';
+            document.getElementById('card-jr4').style.display = jrState === 3 ? 'block' : 'none';
+            
+            // Orange Railway
+            document.getElementById('card-orange1').style.display = orangeState === 0 ? 'block' : 'none';
+            document.getElementById('card-orange2').style.display = orangeState === 1 ? 'block' : 'none';
+            
+            // Sanko Bus
+            document.getElementById('card-sanko1').style.display = sankoState === 0 ? 'block' : 'none';
+            document.getElementById('card-sanko2').style.display = sankoState === 1 ? 'block' : 'none';
+            
+            // Immediately force an update to truncate any overflowing items on the newly visible cards
+            if (typeof updateTrains === 'function') {
+                updateTrains();
+            }
+        }, 15000); // 15 seconds
+    </script>
+</body>
+</html>
