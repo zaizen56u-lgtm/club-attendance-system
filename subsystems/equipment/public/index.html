@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在庫・備品管理システム</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+</head>
+<body>
+    <div id="alert-container" class="alert-container"></div>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>備品管理</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-target="view-inventory">備品一覧</a>
+                <a href="#" class="nav-item" data-target="view-categories">分類表示</a>
+                <a href="#" class="nav-item" data-target="view-consume">使用の入力 (スキャン)</a>
+                <a href="#" class="nav-item" data-target="view-register">新規備品登録</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <!-- 画面: 備品一覧 -->
+            <div id="view-inventory" class="view-section active">
+                <header class="topbar">
+                    <h1>備品一覧</h1>
+                </header>
+
+                <section class="recent-activity">
+                    <div class="table-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div class="search-box">
+                            <input type="text" id="search-input" placeholder="備品名やバーコードで検索..." autocomplete="off" style="padding: 0.6rem; width: 300px; border-radius: 8px; border: 1px solid var(--border);">
+                        </div>
+                        <div class="item-count-display">
+                            <span id="display-count">0</span>件表示中
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>写真</th>
+                                    <th>バーコード</th>
+                                    <th>分類</th>
+                                    <th>備品名</th>
+                                    <th>在庫数</th>
+                                    <th>アラート基準</th>
+                                    <th>ステータス</th>
+                                    <th>アクション</th>
+                                </tr>
+                            </thead>
+                            <tbody id="item-list-inventory">
+                                <!-- 動的に追加されます -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <!-- 画面: 分類表示 -->
+            <div id="view-categories" class="view-section" style="display: none;">
+                <header class="topbar">
+                    <h1>分類表示</h1>
+                </header>
+
+                <div class="dashboard-cards" id="dashboard-stats">
+                    <!-- 動的に生成されます -->
+                </div>
+
+                <section class="recent-activity">
+                    <div class="category-tabs" id="category-tabs">
+                        <button class="tab-btn active" data-category="機械">機械</button>
+                        <button class="tab-btn" data-category="回路">回路</button>
+                        <button class="tab-btn" data-category="材料（機械系）">材料（機械系）</button>
+                        <button class="tab-btn" data-category="材料（回路系）">材料（回路系）</button>
+                        <button class="tab-btn tab-alert" data-category="alert">アラート物品</button>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>写真</th>
+                                    <th>バーコード</th>
+                                    <th>分類</th>
+                                    <th>備品名</th>
+                                    <th>在庫数</th>
+                                    <th>アラート基準</th>
+                                    <th>ステータス</th>
+                                    <th>アクション</th>
+                                </tr>
+                            </thead>
+                            <tbody id="item-list-categories">
+                                <!-- 動的に追加されます -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <!-- 画面: 使用の入力 -->
+            <div id="view-consume" class="view-section" style="display: none;">
+                <header class="topbar">
+                    <h1>使用の入力 (バーコードスキャン)</h1>
+                </header>
+                <div style="display: flex; gap: 2rem; align-items: flex-start; margin: 1rem 0;">
+                    <!-- スキャンエリア (左側) -->
+                    <div class="card" style="flex: 1; text-align: center; padding: 2rem;">
+                        <h2 style="margin-bottom: 1.5rem; color: var(--text-main);">バーコードスキャン</h2>
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 1.5rem;">
+                            <label style="font-weight: bold; color: var(--text-muted);">使用数:</label>
+                            <input type="number" id="scan-amount" value="1" min="1" title="消費する数" style="width: 80px; font-size: 1.5rem; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
+                            <span style="font-weight: bold; color: var(--text-muted); font-size: 1.2rem;">個</span>
+                        </div>
+                        <input type="text" id="scan-barcode" placeholder="ピッ！とスキャンしてください" autocomplete="off" style="font-size: 1.2rem; padding: 1rem; width: 100%; border-radius: 8px; border: 2px solid var(--primary); margin-bottom: 1rem; text-align: center;">
+                        <p style="color: var(--text-muted); font-size: 0.9rem;">※スキャンすると右側のリストに追加されます</p>
+                    </div>
+
+                    <!-- スキャン済みリスト (右側) -->
+                    <div class="card" style="flex: 2; padding: 2rem;">
+                        <h2 style="margin-bottom: 1.5rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">スキャン済みリスト</h2>
+                        <div class="table-container" style="max-height: 400px; overflow-y: auto; margin-bottom: 1.5rem; box-shadow: none; border: 1px solid var(--border);">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>備品名</th>
+                                        <th>分類</th>
+                                        <th>使用数</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="scanned-list">
+                                    <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">まだスキャンされていません</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <button class="btn-primary" id="btn-submit-scan" style="width: 100%; font-size: 1.2rem; padding: 1rem;" disabled>リストの物品を一括で消費する</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 画面: 新規備品登録 -->
+            <div id="view-register" class="view-section" style="display: none;">
+                <header class="topbar">
+                    <h1>新規備品登録</h1>
+                </header>
+                <div class="card" style="max-width: 600px; margin: 0 auto; padding: 2rem;">
+                    <form id="register-form" class="modal-form">
+                        <div class="form-group">
+                            <label for="item-image">写真</label>
+                            <input type="file" id="item-image" accept="image/*" style="padding: 0.5rem; width: 100%; border: 1px dashed var(--border); border-radius: 8px;">
+                        </div>
+                        <div class="form-group">
+                            <label for="item-category">分類</label>
+                            <select id="item-category" required style="width: 100%; padding: 0.8rem; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 0.95rem;">
+                                <option value="機械">機械</option>
+                                <option value="回路">回路</option>
+                                <option value="材料（機械系）">材料（機械系）</option>
+                                <option value="材料（回路系）">材料（回路系）</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="item-name">備品名</label>
+                            <input type="text" id="item-name" required placeholder="例: デジタルカメラ">
+                        </div>
+                        <div class="form-group">
+                            <label for="item-quantity">今ある数量</label>
+                            <input type="number" id="item-quantity" required min="0" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="item-threshold">アラート発出基準数</label>
+                            <input type="number" id="item-threshold" required min="0" value="1">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary" style="width: 100%;">登録する</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+                    <button type="submit" class="btn-primary">登録する</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
